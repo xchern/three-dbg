@@ -1,5 +1,6 @@
 #include "display.h"
 
+using namespace threedbg;
 using namespace threedbg::display;
 
 #include <vector>
@@ -8,6 +9,40 @@ using namespace threedbg::display;
 
 static GLFWwindow *window;
 static bool done;
+static int w, h;
+
+static enum {NORMAL, ROTATE, GRAB} manipState = NORMAL;
+void mouse_button_callback(GLFWwindow *window, int button, int action,
+                           int mods) {
+    if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+        if (action == GLFW_PRESS) {
+            if (mods & GLFW_MOD_SHIFT) manipState = GRAB;
+            else {
+                manipState = ROTATE;
+                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            }
+        } else if (action == GLFW_RELEASE) {
+            manipState = NORMAL;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+    }
+}
+
+static void cursor_position_callback(GLFWwindow *window, double xpos,
+                                     double ypos) {
+    static double x, y;
+    double dx = (xpos - x) / h, dy = (ypos - y) / h;
+    x = xpos; y = ypos;
+    switch (manipState){
+    case ROTATE:
+        camera::rotateEye(-dx * camera::getFovy(), dy * camera::getFovy());
+        break;
+    case GRAB:
+        camera::translate(-dx * camera::getDist() * camera::getFovy(),
+                          dy * camera::getDist() * camera::getFovy());
+        break;
+    }
+}
 
 void threedbg::display::init(void) {
     done = false;
@@ -20,6 +55,9 @@ void threedbg::display::init(void) {
     // glfwWindowHint(GLFW_DOUBLEBUFFER, 0);
 
     window = glfwCreateWindow(1080, 720, "3D debug", NULL, NULL);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
+
     glfwMakeContextCurrent(window);
     gl3wInit();
     glClearColor(.2, .2, .2, 1);
@@ -29,7 +67,6 @@ void threedbg::display::init(void) {
 
 bool threedbg::display::finished(void) { return done; }
 
-static int w, h;
 void threedbg::display::loopOnce(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -50,5 +87,3 @@ void threedbg::display::free(void) {
     glfwDestroyWindow(window);
     glfwTerminate();
 }
-
-// interaction

@@ -15,7 +15,13 @@ glm::fvec3 getUp(void);
 void setFovy(float fovy);
 float getFovy(void);
 
+float getDist(void);
+glm::fvec3 getDir(void);
+glm::fvec3 getTop(void);
+glm::fvec3 getRight(void);
+
 void rotateEye(float hangle, float vangle);
 void rotateCenter(float hangle, float vangle);
+void translate(float right, float up);
 } // namespace camera
 } // namespace threedbg

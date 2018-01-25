@@ -1,6 +1,7 @@
 #include "camera.h"
 
 using namespace threedbg;
+using namespace threedbg::camera;
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/rotate_vector.hpp>
@@ -17,26 +18,34 @@ glm::fvec3 threedbg::camera::getUp(void) { return up; }
 void threedbg::camera::setFovy(float f) { fovy = f; }
 float threedbg::camera::getFovy(void) { return fovy; }
 
-static float getDist(void) { return glm::length(eye - center); }
+float camera::getDist(void) { return glm::length(eye - center); }
+glm::fvec3 camera::getDir(void) { return glm::normalize(center - eye); }
+glm::fvec3 camera::getTop(void) { return glm::cross(getRight(), getDir()); }
+glm::fvec3 camera::getRight(void) { return glm::normalize(glm::cross(getDir(), up)); }
 
-glm::fmat4 threedbg::camera::getProjMat(void) {
+glm::fmat4 camera::getProjMat(void) {
     float dist = getDist();
     return glm::perspective(fovy, display::getAspect(), .02f * dist,
                             50 * dist) *
            glm::lookAt(eye, center, up);
 }
 
-void threedbg::camera::rotateEye(float hangle, float vangle) {
-    glm::fvec3 dir = glm::normalize(eye - center);
+void camera::rotateEye(float hangle, float vangle) {
+    glm::fvec3 dir = -getDir();
     dir = glm::rotate(dir, hangle, up);
     dir += vangle * up;
     dir = glm::normalize(dir);
     eye = center + getDist() * dir;
 }
-void threedbg::camera::rotateCenter(float hangle, float vangle) {
-    glm::fvec3 dir = glm::normalize(center - eye);
+void camera::rotateCenter(float hangle, float vangle) {
+    glm::fvec3 dir = getDir();
     dir = glm::rotate(dir, hangle, up);
     dir += vangle * up;
     dir = glm::normalize(dir);
     center = eye + getDist() * dir;
+}
+void camera::translate(float r, float u) {
+    glm::fvec3 dr = getTop() * u + getRight() * r;
+    center += dr;
+    eye += dr;
 }
