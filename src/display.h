@@ -1,8 +1,7 @@
 #pragma once
 
-#include <GL/gl3w.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
+#include "threedbg.h"
+
 
 namespace threedbg {
 namespace display {
@@ -10,6 +9,6 @@ void init(void);
 bool finished(void);
 void loopOnce(void);
 void free(void);
-glm::fmat4 projMat(void);
+float getAspect(void);
 } // namespace display
 } // namespace threedbg

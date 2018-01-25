@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include <GL/gl3w.h>
 #include <glm/glm.hpp>
 
 namespace threedbg {
@@ -14,13 +15,8 @@ void free(void);
 bool working(void);
 void wait(void);
 
-namespace Point {
-typedef glm::fvec3 Point;
-void add(Point p);
-void add(Point p, Color c);
-void add(const std::vector<Point> &ps);
-void add(const std::vector<Point> &ps, const std::vector<Color> &cs);
-void clear(void);
-void flush(void);
-} // namespace Point
 } // namespace threedbg
+
+#include "camera.h"
+#include "display.h"
+#include "Point.h"

@@ -1,5 +1,3 @@
-#include "threedbg.h"
-#include "display.h"
 #include "Point.h"
 
 #include <mutex>
@@ -12,11 +10,26 @@ static std::mutex lock;
 
 static std::vector<Point> pointBuffer;
 static std::vector<threedbg::Color> colorBuffer;
+static void addColor(void) {
+    unsigned int a = colorBuffer.size();
+    a = (a + 0x7ed55d16) + (a << 12);
+    a = (a ^ 0xc761c23c) ^ (a >> 19);
+    a = (a + 0x165667b1) + (a << 5);
+    a = (a + 0xd3a2646c) ^ (a << 9);
+    a = (a + 0xfd7046c5) + (a << 3);
+    a = (a ^ 0xb55a4f09) ^ (a >> 16);
+    a &= 0xff;
+    float r = a * 1.0f / 255;
+    colorBuffer.push_back(glm::fvec3(0, .4 + r * .2, 1));
+}
 void threedbg::Point::add(Point p) {
     pointBuffer.push_back(p);
-    colorBuffer.push_back(glm::fvec3(1, 1, 1));
+    addColor();
 }
 void threedbg::Point::add(const std::vector<Point> &ps) {
+    pointBuffer.insert(pointBuffer.end(), ps.begin(), ps.end());
+    while (colorBuffer.size() < pointBuffer.size())
+        addColor();
 }
 void threedbg::Point::add(const std::vector<Point> &ps,
                           const std::vector<Color> &cs) {
@@ -54,7 +67,7 @@ void main() {
     vec2 pos = gl_PointCoord - 0.5;
     float l2  = dot(pos, pos);
     if (l2 > 0.5 * 0.5) discard;
-    if (l2 > 0.3 * 0.3) oColor = vec3(0);
+    if (l2 > 0.45 * 0.45) oColor = vec3(0);
     else oColor = fColor;
 }
 )";
@@ -136,9 +149,9 @@ void threedbg::Point::draw(void) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * colors.size(),
                  &colors[0], GL_STREAM_DRAW);
-    glPointSize(16);
+    glPointSize(8);
     glUseProgram(program);
-    glm::fmat4 projMat = threedbg::display::projMat();
+    glm::fmat4 projMat = threedbg::camera::getProjMat();
     glUniformMatrix4fv(glGetUniformLocation(program, "projMat"), 1, false, &projMat[0][0]);
     glBindVertexArray(vao);
     glDrawArrays(GL_POINTS, 0, points.size());

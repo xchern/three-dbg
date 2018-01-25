@@ -23,6 +23,8 @@ add_library(threedbg SHARED
     src/threedbg.h
     src/display.cc
     src/display.h
+    src/camera.cc
+    src/camera.h
     src/Point.cc
     src/Point.h
     )

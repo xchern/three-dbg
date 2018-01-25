@@ -10,12 +10,13 @@ int main(void) {
     while (threedbg::working()) {
         printf("loop\n");
         threedbg::Point::clear();
-        for (float x = -10; x <= 10; x++)
+        for (float z = -10; z <= 10; z++)
             for (float y = -10; y <= 10; y++)
-                for (float z = -0; z <= 0; z++) {
+                for (float x = -10; x <= 10; x++) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     threedbg::Point::add(glm::fvec3(x / 10, y / 10, z / 10));
                     threedbg::Point::flush();
+                    threedbg::camera::rotateEye(.001, 0);
                 }
     }
     printf("quit\n");
