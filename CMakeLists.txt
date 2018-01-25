@@ -10,14 +10,6 @@ include_directories(
     gl3w
     )
 
-add_library(gl3w SHARED
-    gl3w/GL/gl3w.c
-    gl3w/GL/gl3w.h
-    )
-target_link_libraries(gl3w
-    ${OPENGL_LIBRARIES}
-    )
-
 add_library(threedbg SHARED
     src/threedbg.cc
     src/threedbg.h
@@ -27,10 +19,12 @@ add_library(threedbg SHARED
     src/camera.h
     src/Point.cc
     src/Point.h
+    gl3w/GL/gl3w.c
+    gl3w/GL/gl3w.h
     )
 target_link_libraries(threedbg
+    ${OPENGL_LIBRARIES}
     glfw
-    gl3w
     )
 
 add_library(py-threedbg SHARED

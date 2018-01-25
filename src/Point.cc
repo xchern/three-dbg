@@ -26,6 +26,10 @@ void threedbg::Point::add(Point p) {
     pointBuffer.push_back(p);
     addColor();
 }
+void threedbg::Point::add(Point p, Color c) {
+    pointBuffer.push_back(p);
+    colorBuffer.push_back(c);
+}
 void threedbg::Point::add(const std::vector<Point> &ps) {
     pointBuffer.insert(pointBuffer.end(), ps.begin(), ps.end());
     while (colorBuffer.size() < pointBuffer.size())
@@ -139,6 +143,7 @@ void threedbg::Point::free(void) {
     glDeleteBuffers(1, &vbo_pos);
     glDeleteBuffers(1, &vbo_color);
     glDeleteVertexArrays(1, &vao);
+    clear();
 }
 
 void threedbg::Point::draw(void) {
