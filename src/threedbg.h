@@ -20,3 +20,4 @@ void wait(void);
 #include "camera.h"
 #include "display.h"
 #include "Point.h"
+#include "Line.h"

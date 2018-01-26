@@ -1,53 +1,10 @@
-#include "Point.h"
+#include "Line.h"
 
 #include "common.h"
 
 #include <mutex>
 
-using namespace threedbg::Point;
-
-static std::vector<Point> points;
-static std::vector<threedbg::Color> colors;
-static std::mutex lock;
-
-static std::vector<Point> pointBuffer;
-static std::vector<threedbg::Color> colorBuffer;
-static void addColor(void) {
-    unsigned int a = colorBuffer.size();
-    a = hash(a);
-    a &= 0xff;
-    float r = a * 1.0f / 255;
-    colorBuffer.push_back(glm::fvec3(0, .4 + r * .2, 1));
-}
-void threedbg::Point::add(Point p) {
-    pointBuffer.push_back(p);
-    addColor();
-}
-void threedbg::Point::add(Point p, Color c) {
-    pointBuffer.push_back(p);
-    colorBuffer.push_back(c);
-}
-void threedbg::Point::add(const std::vector<Point> &ps) {
-    pointBuffer.insert(pointBuffer.end(), ps.begin(), ps.end());
-    while (colorBuffer.size() < pointBuffer.size())
-        addColor();
-}
-void threedbg::Point::add(const std::vector<Point> &ps,
-                          const std::vector<Color> &cs) {
-    pointBuffer.insert(pointBuffer.end(), ps.begin(), ps.end());
-    colorBuffer.insert(colorBuffer.end(), cs.begin(), cs.end());
-}
-void threedbg::Point::clear(void) {
-    pointBuffer.clear();
-    colorBuffer.clear();
-}
-void threedbg::Point::flush(void){
-    lock.lock();
-    points = pointBuffer;
-    colors = colorBuffer;
-    lock.unlock();
-}
-
+using namespace threedbg::Line;
 
 const std::string vertex_shader_src = R"(
 #version 330
@@ -65,17 +22,12 @@ const std::string fragment_shader_src = R"(
 in vec3 fColor;
 out vec3 oColor;
 void main() {
-    vec2 pos = gl_PointCoord - 0.5;
-    float l2  = dot(pos, pos);
-    if (l2 > 0.5 * 0.5) discard;
-    if (l2 > 0.45 * 0.45) oColor = vec3(0);
-    else oColor = fColor;
+    oColor = fColor;
 }
 )";
 
 static GLuint program, vbo_pos, vbo_color, vao;
-
-void threedbg::Point::init(void) {
+void threedbg::Line::init(void) {
     program = glCreateProgram();
     glGenBuffers(1, &vbo_pos);
     glGenBuffers(1, &vbo_color);
@@ -83,7 +35,6 @@ void threedbg::Point::init(void) {
 
     compileShader(program, vertex_shader_src, fragment_shader_src);
 
-    // bind
     GLint posLoc, colorLoc;
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
@@ -97,7 +48,8 @@ void threedbg::Point::init(void) {
                           (void *)0);
     glEnableVertexAttribArray(colorLoc);
 }
-void threedbg::Point::free(void) {
+
+void threedbg::Line::free(void) {
     glDeleteProgram(program);
     glDeleteBuffers(1, &vbo_pos);
     glDeleteBuffers(1, &vbo_color);
@@ -105,19 +57,64 @@ void threedbg::Point::free(void) {
     clear();
 }
 
-void threedbg::Point::draw(void) {
+static std::vector<Line> lines;
+static std::vector<threedbg::Color> colors;
+static std::mutex lock;
+
+void threedbg::Line::draw(void) {
     lock.lock();
     glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * points.size(),
-                 &points[0], GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,
+                 sizeof(std::pair<glm::fvec3, glm::fvec3>) * lines.size(),
+                 &lines[0], GL_STREAM_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * colors.size(),
                  &colors[0], GL_STREAM_DRAW);
-    glPointSize(8);
     glUseProgram(program);
     glm::fmat4 projMat = threedbg::camera::getProjMat();
     glUniformMatrix4fv(glGetUniformLocation(program, "projMat"), 1, false, &projMat[0][0]);
     glBindVertexArray(vao);
-    glDrawArrays(GL_POINTS, 0, points.size());
+    glDrawArrays(GL_LINES, 0, 2 * lines.size());
+    lock.unlock();
+}
+
+static std::vector<Line> lineBuffer;
+static std::vector<threedbg::Color> colorBuffer;
+
+static glm::fvec3 getColor(void) {
+    unsigned int a = lineBuffer.size();
+    a = hash(a);
+    a &= 0xff;
+    float r = a * 1.0f / 255;
+    return glm::fvec3(1, .3 + r * .4, 0);
+}
+
+void threedbg::Line::add(Line l) {
+    glm::fvec3 c = getColor();
+    add(l, c);
+}
+
+void threedbg::Line::add(Line l, Color c) {
+    lineBuffer.push_back(l);
+    colorBuffer.push_back(c);
+    colorBuffer.push_back(c);
+}
+void threedbg::Line::add(const std::vector<Line> &ls) {
+    glm::fvec3 c = getColor();
+    for (auto l : ls)
+        add(l, c);
+}
+void threedbg::Line::add(const std::vector<Line> &ls, const std::vector<Color> &cs) {
+    lineBuffer.insert(lineBuffer.end(), ls.begin(), ls.end());
+    colorBuffer.insert(colorBuffer.end(), cs.begin(), cs.end());
+}
+void threedbg::Line::clear(void) {
+    lineBuffer.clear();
+    colorBuffer.clear();
+}
+void threedbg::Line::flush(void) {
+    lock.lock();
+    lines = lineBuffer;
+    colors = colorBuffer;
     lock.unlock();
 }

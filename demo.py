@@ -20,5 +20,5 @@ while threedbg.working():
     t += 0.0001
     ps = np.array((x,y,z)).T.astype(np.float32)
     threedbg.Point.clear()
-    threedbg.Point.add(ps, ps)
+    threedbg.Point.add(ps)#, ps)
     threedbg.Point.flush()

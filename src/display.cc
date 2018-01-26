@@ -63,6 +63,7 @@ void threedbg::display::init(void) {
     glClearColor(.2, .2, .2, 1);
     glEnable(GL_DEPTH_TEST);
     threedbg::Point::init();
+    threedbg::Line::init();
 }
 
 bool threedbg::display::finished(void) { return done; }
@@ -74,6 +75,7 @@ void threedbg::display::loopOnce(void) {
     glViewport(0, 0, w, h);
 
     threedbg::Point::draw();
+    threedbg::Line::draw();
     glfwSwapBuffers(window);
     glfwPollEvents();
     if (glfwWindowShouldClose(window))
@@ -84,6 +86,7 @@ float threedbg::display::getAspect(void) { return (float)w / h; }
 
 void threedbg::display::free(void) {
     threedbg::Point::free();
+    threedbg::Line::free();
     glfwDestroyWindow(window);
     glfwTerminate();
 }
