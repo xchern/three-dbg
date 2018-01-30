@@ -13,7 +13,8 @@ void add(Line l);
 void add(Line l, Color c);
 void add(const std::vector<Line> &ls);
 void add(const std::vector<Line> &ls, const std::vector<Color> &cs);
+void addAABB(glm::fvec3 min, glm::fvec3 max);
 void clear(void);
 void flush(void);
-}
+} // namespace Line
 } // namespace threedbg

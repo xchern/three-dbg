@@ -70,6 +70,7 @@ void threedbg::Line::draw(void) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * colors.size(),
                  &colors[0], GL_STREAM_DRAW);
+    glLineWidth(1.5);
     glUseProgram(program);
     glm::fmat4 projMat = threedbg::camera::getProjMat();
     glUniformMatrix4fv(glGetUniformLocation(program, "projMat"), 1, false, &projMat[0][0]);
@@ -86,12 +87,42 @@ static glm::fvec3 getColor(void) {
     a = hash(a);
     a &= 0xff;
     float r = a * 1.0f / 255;
-    return glm::fvec3(1, .3 + r * .4, 0);
+    return glm::fvec3(1, .1 + r * .8, 0);
 }
 
 void threedbg::Line::add(Line l) {
     glm::fvec3 c = getColor();
     add(l, c);
+}
+
+void threedbg::Line::addAABB(glm::fvec3 min, glm::fvec3 max) {
+    glm::fvec3 c = getColor();
+    add(std::make_pair(glm::fvec3(min.x, min.y, min.z),
+                       glm::fvec3(max.x, min.y, min.z)), c);
+    add(std::make_pair(glm::fvec3(min.x, max.y, min.z),
+                       glm::fvec3(max.x, max.y, min.z)), c);
+    add(std::make_pair(glm::fvec3(min.x, min.y, max.z),
+                       glm::fvec3(max.x, min.y, max.z)), c);
+    add(std::make_pair(glm::fvec3(min.x, max.y, max.z),
+                       glm::fvec3(max.x, max.y, max.z)), c);
+
+    add(std::make_pair(glm::fvec3(min.x, min.y, min.z),
+                       glm::fvec3(min.x, max.y, min.z)), c);
+    add(std::make_pair(glm::fvec3(max.x, min.y, min.z),
+                       glm::fvec3(max.x, max.y, min.z)), c);
+    add(std::make_pair(glm::fvec3(min.x, min.y, max.z),
+                       glm::fvec3(min.x, max.y, max.z)), c);
+    add(std::make_pair(glm::fvec3(max.x, min.y, max.z),
+                       glm::fvec3(max.x, max.y, max.z)), c);
+
+    add(std::make_pair(glm::fvec3(min.x, min.y, min.z),
+                       glm::fvec3(min.x, min.y, max.z)), c);
+    add(std::make_pair(glm::fvec3(max.x, min.y, min.z),
+                       glm::fvec3(max.x, min.y, max.z)), c);
+    add(std::make_pair(glm::fvec3(min.x, max.y, min.z),
+                       glm::fvec3(min.x, max.y, max.z)), c);
+    add(std::make_pair(glm::fvec3(max.x, max.y, min.z),
+                       glm::fvec3(max.x, max.y, max.z)), c);
 }
 
 void threedbg::Line::add(Line l, Color c) {

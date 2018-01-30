@@ -6,7 +6,7 @@ using namespace threedbg::camera;
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
-static glm::fvec3 eye = {3, 2, 1}, center = {0, 0, 0}, up = {0, 0, 1};
+static glm::fvec3 eye = {3, 1, 2}, center = {0, 0, 0}, up = {0, 0, 1};
 static float fovy = 1;
 
 void threedbg::camera::setEye(glm::fvec3 e) { eye = e; }
