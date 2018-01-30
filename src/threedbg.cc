@@ -18,6 +18,7 @@ void threedbg::init(void) {
             display::loopOnce();
         display::free();
     });
+    // wait util the display starts
     while (display::finished())
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }

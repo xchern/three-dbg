@@ -8,23 +8,25 @@ using namespace threedbg::display;
 #include <GLFW/glfw3.h>
 
 static GLFWwindow *window;
-static bool done;
+static bool doneFlag;
 static int w, h;
 
-static enum {NORMAL, ROTATE, GRAB} manipState = NORMAL;
+static enum { NORMAL, ROTATE, GRAB } manipState = NORMAL;
 void mouse_button_callback(GLFWwindow *window, int button, int action,
                            int mods) {
-    if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-        if (action == GLFW_PRESS) {
-            if (mods & GLFW_MOD_SHIFT) manipState = GRAB;
-            else {
-                manipState = ROTATE;
-                glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            }
-        } else if (action == GLFW_RELEASE) {
-            manipState = NORMAL;
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    if (action == GLFW_RELEASE) {
+        manipState = NORMAL;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    } else {
+        switch (button) {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            manipState = ROTATE;
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            manipState = GRAB;
+            break;
         }
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
 }
 
@@ -45,7 +47,7 @@ static void cursor_position_callback(GLFWwindow *window, double xpos,
 }
 
 void threedbg::display::init(void) {
-    done = false;
+    doneFlag = false;
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -66,7 +68,7 @@ void threedbg::display::init(void) {
     threedbg::Line::init();
 }
 
-bool threedbg::display::finished(void) { return done; }
+bool threedbg::display::finished(void) { return doneFlag; }
 
 void threedbg::display::loopOnce(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -79,7 +81,7 @@ void threedbg::display::loopOnce(void) {
     glfwSwapBuffers(window);
     glfwPollEvents();
     if (glfwWindowShouldClose(window))
-        done = true;
+        doneFlag = true;
 }
 
 float threedbg::display::getAspect(void) { return (float)w / h; }
