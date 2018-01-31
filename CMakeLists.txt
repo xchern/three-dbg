@@ -21,6 +21,7 @@ add_library(threedbg SHARED
     src/Point.h
     src/Line.cc
     src/Line.h
+    src/common.h
     gl3w/GL/gl3w.c
     gl3w/GL/gl3w.h
     )

@@ -87,13 +87,14 @@ static glm::fvec3 getColor(void) {
     a = hash(a);
     a &= 0xff;
     float r = a * 1.0f / 255;
-    return glm::fvec3(1, .1 + r * .8, 0);
+    return glm::fvec3(.7, .2 + r * .2, .1);
 }
 
 void threedbg::Line::add(Line l) {
     glm::fvec3 c = getColor();
     add(l, c);
 }
+
 
 void threedbg::Line::addAABB(glm::fvec3 min, glm::fvec3 max) {
     glm::fvec3 c = getColor();
@@ -125,6 +126,15 @@ void threedbg::Line::addAABB(glm::fvec3 min, glm::fvec3 max) {
                        glm::fvec3(max.x, max.y, max.z)), c);
 }
 
+void threedbg::Line::addAxes(glm::fvec3 pos, float size) {
+    const glm::fvec3 r(1, 0, 0);
+    const glm::fvec3 g(0, 1, 0);
+    const glm::fvec3 b(0, 0, 1);
+    add(std::make_pair(pos, pos + size * r), r);
+    add(std::make_pair(pos, pos + size * g), g);
+    add(std::make_pair(pos, pos + size * b), b);
+}
+
 void threedbg::Line::add(Line l, Color c) {
     lineBuffer.push_back(l);
     colorBuffer.push_back(c);
@@ -139,6 +149,7 @@ void threedbg::Line::add(const std::vector<Line> &ls, const std::vector<Color> &
     lineBuffer.insert(lineBuffer.end(), ls.begin(), ls.end());
     colorBuffer.insert(colorBuffer.end(), cs.begin(), cs.end());
 }
+size_t threedbg::Line::size(void) { return lineBuffer.size(); }
 void threedbg::Line::clear(void) {
     lineBuffer.clear();
     colorBuffer.clear();

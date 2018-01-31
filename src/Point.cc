@@ -68,8 +68,8 @@ void main() {
     vec2 pos = gl_PointCoord - 0.5;
     float l2  = dot(pos, pos);
     if (l2 > 0.5 * 0.5) discard;
-    //if (l2 > 0.45 * 0.45) oColor = vec3(0);
     else oColor = fColor;
+    if (l2 > 0.4 * 0.4) oColor *= 0.5;
 }
 )";
 
