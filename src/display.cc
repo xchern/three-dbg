@@ -2,14 +2,18 @@
 
 using namespace threedbg;
 using namespace threedbg::display;
+static std::mutex & lock = threedbg::globalLock;
 
 #include <vector>
+#include <thread>
 
 #include <GLFW/glfw3.h>
 
 static GLFWwindow *window;
-static bool doneFlag;
+static bool doneFlag = true;
 static int w, h;
+static bool screenShotFlag = false;
+static std::vector<glm::fvec3> pixels;
 
 static enum { NORMAL, ROTATE, GRAB } manipState = NORMAL;
 void mouse_button_callback(GLFWwindow *window, int button, int action,
@@ -47,25 +51,27 @@ static void cursor_position_callback(GLFWwindow *window, double xpos,
 }
 
 void threedbg::display::init(void) {
-    doneFlag = false;
+    lock.lock();
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 4);
-    // glfwWindowHint(GLFW_DOUBLEBUFFER, 0);
 
     window = glfwCreateWindow(1080, 720, "3D debug", NULL, NULL);
+    doneFlag = false;
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
 
     glfwMakeContextCurrent(window);
     gl3wInit();
-    glClearColor(.2, .2, .2, 1);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+    glClearColor(.2, .2, .2, 1);
     threedbg::Point::init();
     threedbg::Line::init();
+    lock.unlock();
 }
 
 bool threedbg::display::finished(void) { return doneFlag; }
@@ -73,11 +79,20 @@ bool threedbg::display::finished(void) { return doneFlag; }
 void threedbg::display::loopOnce(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glfwGetFramebufferSize(window, &w, &h);
+    lock.lock();
+    glfwGetWindowSize(window, &w, &h);
+    lock.unlock();
     glViewport(0, 0, w, h);
 
     threedbg::Point::draw();
     threedbg::Line::draw();
+    if (screenShotFlag) {
+        glFinish();
+        pixels.resize(w * h);
+        glReadBuffer(GL_FRONT);
+        glReadPixels(0, 0, w, h, GL_RGB, GL_FLOAT, &pixels[0]);
+        screenShotFlag = false;
+    }
     glfwSwapBuffers(window);
     glfwPollEvents();
     if (glfwWindowShouldClose(window))
@@ -91,4 +106,29 @@ void threedbg::display::free(void) {
     threedbg::Line::free();
     glfwDestroyWindow(window);
     glfwTerminate();
+}
+
+void threedbg::display::setDisplaySize(int w, int h) {
+    if (!finished())
+        glfwSetWindowSize(window, w, h);
+}
+
+void threedbg::display::getDisplaySize(int *wp, int *hp) {
+    lock.lock();
+    *wp = w;
+    *hp = h;
+    lock.unlock();
+}
+
+std::vector<glm::fvec3> threedbg::display::getImage(void) {
+    // FIXME: In the image, white spot on the particles, while it looks good with display window
+    // FIXED: ALPHA channel seems strange while rgb remains well the white is the backgound color
+    // set Flag and wait
+    screenShotFlag = true;
+    while (screenShotFlag)
+        std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    // move data
+    std::vector<glm::fvec3> data = std::move(pixels);
+    pixels.clear();
+    return data;
 }

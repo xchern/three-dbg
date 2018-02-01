@@ -2,9 +2,8 @@
 
 #include "common.h"
 
-#include <mutex>
-
 using namespace threedbg::Line;
+static std::mutex & lock = threedbg::globalLock;
 
 const std::string vertex_shader_src = R"(
 #version 330
@@ -59,7 +58,6 @@ void threedbg::Line::free(void) {
 
 static std::vector<Line> lines;
 static std::vector<threedbg::Color> colors;
-static std::mutex lock;
 
 void threedbg::Line::draw(void) {
     lock.lock();

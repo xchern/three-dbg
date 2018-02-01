@@ -52,4 +52,17 @@ PYBIND11_MODULE(threedbg, m) {
     }, "Add points");
     Point.def("clear", &Point::clear, "Clear points");
     Point.def("flush", &Point::flush, "Flush points");
+
+    py::module display = m.def_submodule("display", "manipulate the display");
+    display.def("getImage",
+                [](void) {
+                    auto pixels = display::getImage();
+                    int w, h;
+                    display::getDisplaySize(&w, &h);
+                    py::array_t<float> img({h, w, 3});
+                    memcpy(img.request().ptr, pixels.data(),
+                           w * h * 3 * sizeof(float));
+                    return img;
+                },
+                "snapshot the screen");
 }

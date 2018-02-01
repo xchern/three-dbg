@@ -9,18 +9,21 @@ using namespace threedbg;
 static std::thread displayThread;
 static bool done;
 
+std::mutex threedbg::globalLock;
+
 void threedbg::init(void) {
     // new thread for opengl display
     done = false;
     displayThread = std::thread([](void) {
         display::init();
-        while (!done && !display::finished())
+        while (!done && !display::finished()) {
             display::loopOnce();
+        }
         display::free();
     });
     // wait util the display starts
     while (display::finished())
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
 }
 
 void threedbg::free(void) {

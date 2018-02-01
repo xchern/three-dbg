@@ -2,16 +2,16 @@
 
 #include "common.h"
 
-#include <mutex>
-
 using namespace threedbg::Point;
 
 static std::vector<Point> points;
 static std::vector<threedbg::Color> colors;
-static std::mutex lock;
 
 static std::vector<Point> pointBuffer;
 static std::vector<threedbg::Color> colorBuffer;
+
+static std::mutex & lock = threedbg::globalLock;
+
 static void addColor(void) {
     unsigned int a = colorBuffer.size();
     a = hash(a);
