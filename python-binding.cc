@@ -53,7 +53,61 @@ PYBIND11_MODULE(threedbg, m) {
     Point.def("clear", &Point::clear, "Clear points");
     Point.def("flush", &Point::flush, "Flush points");
 
+    py::module Line = m.def_submodule("Line", "Draw Lines");
+    Line.def("add", [](py::array_t<float> source, py::array_t<float> target) {
+        py::buffer_info sourceInfo = source.request();
+        py::buffer_info targetInfo = target.request();
+        if (sourceInfo.ndim != 2 || sourceInfo.shape[1] != 3 ||
+            targetInfo.ndim != 2 || targetInfo.shape[1] != 3)
+            throw std::runtime_error("source and target array should be of shape (x, 3)");
+        if (sourceInfo.shape[0] != targetInfo.shape[0])
+            throw std::runtime_error("source and target array should match in length");
+        for (size_t i = 0; i < sourceInfo.shape[0]; i++) {
+            const float sx = *(float *)((char *)sourceInfo.ptr + i * sourceInfo.strides[0] + 0 * sourceInfo.strides[1]);
+            const float sy = *(float *)((char *)sourceInfo.ptr + i * sourceInfo.strides[0] + 1 * sourceInfo.strides[1]);
+            const float sz = *(float *)((char *)sourceInfo.ptr + i * sourceInfo.strides[0] + 2 * sourceInfo.strides[1]);
+            const float tx = *(float *)((char *)targetInfo.ptr + i * targetInfo.strides[0] + 0 * targetInfo.strides[1]);
+            const float ty = *(float *)((char *)targetInfo.ptr + i * targetInfo.strides[0] + 1 * targetInfo.strides[1]);
+            const float tz = *(float *)((char *)targetInfo.ptr + i * targetInfo.strides[0] + 2 * targetInfo.strides[1]);
+            std::pair<glm::fvec3, glm::fvec3> l =
+                std::make_pair(glm::fvec3(sx, sy, sz), glm::fvec3(tx, ty, tz));
+            Line::add(l);
+        }
+    }, "Add Lines");
+    Line.def("addAABB", [](py::array_t<float> mins, py::array_t<float> maxs) {
+        py::buffer_info sourceInfo = mins.request();
+        py::buffer_info targetInfo = maxs.request();
+        if (sourceInfo.ndim != 2 || sourceInfo.shape[1] != 3 ||
+            targetInfo.ndim != 2 || targetInfo.shape[1] != 3)
+            throw std::runtime_error("source and target array should be of shape (x, 3)");
+        if (sourceInfo.shape[0] != targetInfo.shape[0])
+            throw std::runtime_error("source and target array should match in length");
+        for (size_t i = 0; i < sourceInfo.shape[0]; i++) {
+            const float sx = *(float *)((char *)sourceInfo.ptr + i * sourceInfo.strides[0] + 0 * sourceInfo.strides[1]);
+            const float sy = *(float *)((char *)sourceInfo.ptr + i * sourceInfo.strides[0] + 1 * sourceInfo.strides[1]);
+            const float sz = *(float *)((char *)sourceInfo.ptr + i * sourceInfo.strides[0] + 2 * sourceInfo.strides[1]);
+            const float tx = *(float *)((char *)targetInfo.ptr + i * targetInfo.strides[0] + 0 * targetInfo.strides[1]);
+            const float ty = *(float *)((char *)targetInfo.ptr + i * targetInfo.strides[0] + 1 * targetInfo.strides[1]);
+            const float tz = *(float *)((char *)targetInfo.ptr + i * targetInfo.strides[0] + 2 * targetInfo.strides[1]);
+            auto min = glm::fvec3(sx, sy, sz);
+            auto max = glm::fvec3(tx, ty, tz);
+            Line::addAABB(min, max);
+        }
+    }, "Add AABB Boxes");
+    Line.def("addAxes",
+             [](float x, float y, float z, float size) {
+                 Line::addAxes(glm::fvec3(x, y, z), size);
+             },
+             "Show axes x,y,z at position");
+    Line.def("clear", [](void){Line::clear();}, "Clear Lines");
+    Line.def("flush", [](void){Line::flush();}, "Flush Lines");
+
     py::module display = m.def_submodule("display", "manipulate the display");
+    display.def("setDisplaySize",
+                [](int width, int height) {
+                    display::setDisplaySize(width, height);
+                },
+                "resize the window");
     display.def("getImage",
                 [](void) {
                     auto pixels = display::getImage();
