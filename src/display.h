@@ -12,6 +12,8 @@ void free(void);
 float getAspect(void);
 void setDisplaySize(int w, int h);
 void getDisplaySize(int *w, int *h);
+
+char getChar(void);
 // w * h * 3 * sizeof(float) bytes will be filled
 std::vector<glm::fvec3> getImage(void);
 } // namespace display

@@ -5,6 +5,7 @@ using namespace threedbg::display;
 static std::mutex & lock = threedbg::globalLock;
 
 #include <vector>
+#include <queue>
 #include <thread>
 
 #include <GLFW/glfw3.h>
@@ -14,6 +15,7 @@ static bool doneFlag = true;
 static int w, h;
 static bool screenShotFlag = false;
 static std::vector<glm::fvec3> pixels;
+static std::queue<char> charQueue;
 
 static enum { NORMAL, ROTATE, GRAB } manipState = NORMAL;
 void mouse_button_callback(GLFWwindow *window, int button, int action,
@@ -50,6 +52,13 @@ static void cursor_position_callback(GLFWwindow *window, double xpos,
     }
 }
 
+static void char_callback(GLFWwindow *window, unsigned int codepoint) {
+    lock.lock();
+    if (codepoint < 128 && charQueue.size() < 100)
+        charQueue.push(codepoint);
+    lock.unlock();
+}
+
 void threedbg::display::init(void) {
     lock.lock();
     glfwInit();
@@ -63,12 +72,13 @@ void threedbg::display::init(void) {
     doneFlag = false;
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetCharCallback(window, char_callback);
 
     glfwMakeContextCurrent(window);
     gl3wInit();
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_MULTISAMPLE);
-    glClearColor(.2, .2, .2, 1);
+    glClearColor(.3, .3, .3, 1);
     threedbg::Point::init();
     threedbg::Line::init();
     lock.unlock();
@@ -81,8 +91,8 @@ void threedbg::display::loopOnce(void) {
 
     lock.lock();
     glfwGetWindowSize(window, &w, &h);
-    lock.unlock();
     glViewport(0, 0, w, h);
+    lock.unlock();
 
     threedbg::Point::draw();
     threedbg::Line::draw();
@@ -132,4 +142,15 @@ std::vector<glm::fvec3> threedbg::display::getImage(void) {
     std::vector<glm::fvec3> data = std::move(pixels);
     pixels.clear();
     return data;
+}
+
+char threedbg::display::getChar(void) {
+    char c = 0;
+    lock.lock();
+    if (!charQueue.empty()) {
+        c = charQueue.front();
+        charQueue.pop();
+    }
+    lock.unlock();
+    return c;
 }

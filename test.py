@@ -24,24 +24,24 @@ def test_show_point():
     threedbg.Point.clear()
     threedbg.Point.add(ps, ps)
     threedbg.Point.flush()
-    time.sleep(3)
+    time.sleep(2)
 
 def test_show_line():
     threedbg.Line.clear()
     threedbg.Line.addAABB(np.reshape(ps.min(axis=0), (1, 3)) - .02,
                           np.reshape(ps.max(axis=0), (1, 3)) + .02)
     threedbg.Line.flush()
-    time.sleep(3)
+    time.sleep(1)
 
     threedbg.Line.clear()
     threedbg.Line.addAxes(0, 0, 0, 2)
     threedbg.Line.flush()
-    time.sleep(3)
+    time.sleep(1)
 
     threedbg.Line.clear()
     threedbg.Line.addAABB(ps - .1, ps + .1)
     threedbg.Line.flush()
-    time.sleep(3)
+    time.sleep(1)
 
 def test_snapshot():
     im = threedbg.display.getImage()
@@ -51,3 +51,11 @@ def test_snapshot():
 def test_camera():
     state = threedbg.camera.dump()
     threedbg.camera.load(state)
+
+def test_key():
+    print('press any character key')
+    while True:
+        c = threedbg.display.getChar()
+        if c != '\0':
+            break
+    print('press any it is', c)

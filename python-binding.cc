@@ -146,4 +146,5 @@ PYBIND11_MODULE(threedbg, m) {
                     return img;
                 },
                 "snapshot the screen");
+    display.def("getChar", &display::getChar, "get keyboard event");
 }
