@@ -9,6 +9,16 @@ namespace py = pybind11;
 
 using namespace threedbg;
 
+glm::fvec3 convert(py::object &&o) {
+    auto t = o.cast<std::tuple<float, float, float>>();
+    return glm::fvec3(std::get<0>(t), std::get<1>(t), std::get<2>(t));
+}
+
+inline py::object convert(glm::fvec3 &&v) {
+    auto t = std::make_tuple(v.x, v.y, v.z);
+    return py::cast(t);
+}
+
 PYBIND11_MODULE(threedbg, m) {
     m.doc() = R"(Easy debuging 3d graphics with numpy and OpenGL.)";
     m.def("init", &threedbg::init, "init threedbg opengl display");
@@ -101,6 +111,23 @@ PYBIND11_MODULE(threedbg, m) {
              "Show axes x,y,z at position");
     Line.def("clear", [](void){Line::clear();}, "Clear Lines");
     Line.def("flush", [](void){Line::flush();}, "Flush Lines");
+
+    py::module camera = m.def_submodule("camera", "Interact with camera");
+    camera.def("dump", [](void) {
+        py::dict d;
+        d["eye"] = convert(camera::getEye());
+        d["center"] = convert(camera::getCenter());
+        d["up"] = convert(camera::getUp());
+        d["fovy"] = camera::getFovy();
+        return d;
+    }, "dump camera state");
+    camera.def("load", [](py::dict d) {
+        camera::setEye(convert(d["eye"]));
+        camera::setCenter(convert(d["center"]));
+        camera::setUp(convert(d["up"]));
+        camera::setFovy(d["fovy"].cast<float>());
+        return d;
+    }, "dump camera state");
 
     py::module display = m.def_submodule("display", "manipulate the display");
     display.def("setDisplaySize",
