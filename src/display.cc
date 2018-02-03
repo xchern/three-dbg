@@ -105,8 +105,10 @@ void threedbg::display::loopOnce(void) {
     }
     glfwSwapBuffers(window);
     glfwPollEvents();
-    if (glfwWindowShouldClose(window))
+    if (glfwWindowShouldClose(window)) {
+        w = h = 0;
         doneFlag = true;
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(15));
 }
 
@@ -135,6 +137,8 @@ std::vector<glm::fvec3> threedbg::display::getImage(void) {
     // FIXME: In the image, white spot on the particles, while it looks good with display window
     // FIXED: ALPHA channel seems strange while rgb remains well the white is the backgound color
     // set Flag and wait
+    if (finished())
+        return std::vector<glm::fvec3>();
     screenShotFlag = true;
     while (screenShotFlag)
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
