@@ -18,6 +18,7 @@ glm::fvec3 threedbg::camera::getUp(void) { return up; }
 void threedbg::camera::setFovy(float f) { fovy = f; }
 float threedbg::camera::getFovy(void) { return fovy; }
 
+void camera::setDist(float d) { eye = center - getDir() * d; };
 float camera::getDist(void) { return glm::length(eye - center); }
 glm::fvec3 camera::getDir(void) { return glm::normalize(center - eye); }
 glm::fvec3 camera::getTop(void) { return glm::cross(getRight(), getDir()); }

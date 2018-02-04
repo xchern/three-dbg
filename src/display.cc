@@ -59,6 +59,12 @@ static void char_callback(GLFWwindow *window, unsigned int codepoint) {
     lock.unlock();
 }
 
+static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+    float dist = camera::getDist();
+    dist *= (1 - yoffset / 20);
+    camera::setDist(dist);
+}
+
 void threedbg::display::init(void) {
     lock.lock();
     glfwInit();
@@ -73,6 +79,7 @@ void threedbg::display::init(void) {
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetCharCallback(window, char_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     glfwMakeContextCurrent(window);
     gl3wInit();

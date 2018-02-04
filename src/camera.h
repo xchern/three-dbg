@@ -15,6 +15,7 @@ glm::fvec3 getUp(void);
 void setFovy(float fovy);
 float getFovy(void);
 
+void setDist(float);
 float getDist(void);
 glm::fvec3 getDir(void);
 glm::fvec3 getTop(void);
