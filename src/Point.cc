@@ -113,7 +113,7 @@ void threedbg::Point::draw(void) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * colors.size(),
                  &colors[0], GL_STREAM_DRAW);
-    glPointSize(8);
+    glPointSize(4);
     glUseProgram(program);
     glm::fmat4 projMat = threedbg::camera::getProjMat();
     glUniformMatrix4fv(glGetUniformLocation(program, "projMat"), 1, false, &projMat[0][0]);

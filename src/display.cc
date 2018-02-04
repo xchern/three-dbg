@@ -54,7 +54,7 @@ static void cursor_position_callback(GLFWwindow *window, double xpos,
 
 static void char_callback(GLFWwindow *window, unsigned int codepoint) {
     lock.lock();
-    if (codepoint < 128 && charQueue.size() < 100)
+    if (codepoint < 128 && charQueue.size() < 16)
         charQueue.push(codepoint);
     lock.unlock();
 }
