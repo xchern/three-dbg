@@ -126,6 +126,7 @@ void threedbg::display::free(void) {
     threedbg::Line::free();
     glfwDestroyWindow(window);
     glfwTerminate();
+    doneFlag = true;
 }
 
 void threedbg::display::setDisplaySize(int w, int h) {
