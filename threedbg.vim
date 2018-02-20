@@ -35,7 +35,7 @@ function! s:ClearLine()
 endfunction
 
 function! s:ReadData(l1, l2)
-    execute 'py3 start = ' . a:l1
+    execute 'py3 start = ' . (a:l1 - 1)
     execute 'py3 end   = ' . a:l2
     py3 << EOF
 content = "\n".join(vim.current.buffer[start:end+1]) + "\n"
