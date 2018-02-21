@@ -20,6 +20,7 @@ function! s:Toggle()
 if threedbg.working():
     threedbg.free()
 else:
+    threedbg.free()
     threedbg.init()
 EOF
 endfunction
