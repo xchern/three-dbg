@@ -5,6 +5,7 @@
 using namespace threedbg::Point;
 
 static std::vector<Point> points;
+
 static std::vector<threedbg::Color> colors;
 
 static std::vector<Point> pointBuffer;
@@ -48,6 +49,10 @@ void threedbg::Point::flush(void){
     lock.unlock();
 }
 
+static float pointSize = 2e-2;
+
+void threedbg::Point::setPointSize(float p) { pointSize = p; }
+float threedbg::Point::getPointSize(void) { return pointSize; }
 
 const std::string vertex_shader_src = R"(
 #version 330
@@ -106,6 +111,11 @@ void threedbg::Point::free(void) {
 }
 
 void threedbg::Point::draw(void) {
+    {
+        int w, h;
+        display::getDisplaySize(&w, &h);
+        glPointSize(h * pointSize);
+    }
     lock.lock();
     glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * points.size(),
@@ -113,7 +123,6 @@ void threedbg::Point::draw(void) {
     glBindBuffer(GL_ARRAY_BUFFER, vbo_color);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * colors.size(),
                  &colors[0], GL_STREAM_DRAW);
-    glPointSize(4);
     glUseProgram(program);
     glm::fmat4 projMat = threedbg::camera::getProjMat();
     glUniformMatrix4fv(glGetUniformLocation(program, "projMat"), 1, false, &projMat[0][0]);

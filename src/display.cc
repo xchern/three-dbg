@@ -60,9 +60,17 @@ static void char_callback(GLFWwindow *window, unsigned int codepoint) {
 }
 
 static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-    float dist = camera::getDist();
-    dist *= (1 - yoffset / 20);
-    camera::setDist(dist);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
+            || glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+        // shift pressed
+        float s = Point::getPointSize();
+        s *= (1 + yoffset / 20);
+        Point::setPointSize(s);
+    } else{
+        float dist = camera::getDist();
+        dist *= (1 - yoffset / 20);
+        camera::setDist(dist);
+    }
 }
 
 void threedbg::display::init(void) {

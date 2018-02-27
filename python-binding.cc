@@ -27,6 +27,8 @@ PYBIND11_MODULE(threedbg, m) {
     m.def("working", &threedbg::working, "wheather the window is still open");
 
     py::module Point = m.def_submodule("Point", "Draw Points");
+    Point.def("getPointSize", &Point::getPointSize, "get point size");
+    Point.def("setPointSize", &Point::setPointSize, "set point size");
     Point.def("add", [](py::buffer buf){
         py::buffer_info info = buf.request();
         if (info.format != py::format_descriptor<float>::format())

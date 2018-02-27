@@ -15,5 +15,7 @@ void add(const std::vector<Point> &ps);
 void add(const std::vector<Point> &ps, const std::vector<Color> &cs);
 void clear(void);
 void flush(void);
+void setPointSize(float p);
+float getPointSize(void);
 } // namespace Point
 } // namespace threedbg
