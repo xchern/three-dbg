@@ -74,7 +74,7 @@ void main() {
     float l2  = dot(pos, pos);
     if (l2 > 0.5 * 0.5) discard;
     else oColor = fColor;
-    if (l2 > 0.4 * 0.4) oColor *= 0.5;
+    if (l2 > 0.45 * 0.45) oColor *= 0.5;
 }
 )";
 

@@ -19,6 +19,8 @@ inline py::object convert(glm::fvec3 &&v) {
     return py::cast(t);
 }
 
+typedef py::array_t<float, py::array::c_style | py::array::forcecast> arrayI;
+
 PYBIND11_MODULE(threedbg, m) {
     m.doc() = R"(Easy debuging 3d graphics with numpy and OpenGL.)";
     m.def("init", &threedbg::init, "init threedbg opengl display");
@@ -29,20 +31,20 @@ PYBIND11_MODULE(threedbg, m) {
     py::module Point = m.def_submodule("Point", "Draw Points");
     Point.def("getPointSize", &Point::getPointSize, "get point size");
     Point.def("setPointSize", &Point::setPointSize, "set point size");
-    Point.def("add", [](py::buffer buf){
+    Point.def("add", [](arrayI buf) {
         py::buffer_info info = buf.request();
-        if (info.format != py::format_descriptor<float>::format())
-            throw std::runtime_error("float array should be used to add points");
         if (info.ndim != 2 || info.shape[1] != 3)
             throw std::runtime_error("array should be of shape (x, 3) to add points");
-        for (size_t i = 0; i < info.shape[0]; i++) {
+        for (size_t i = 0; i < info.shape[0]; i++)
+        {
             const float x = *(float *)((char *)info.ptr + i * info.strides[0] + 0 * info.strides[1]);
             const float y = *(float *)((char *)info.ptr + i * info.strides[0] + 1 * info.strides[1]);
             const float z = *(float *)((char *)info.ptr + i * info.strides[0] + 2 * info.strides[1]);
             Point::add(glm::fvec3(x, y, z));
         }
-    }, "Add points");
-    Point.def("add", [](py::buffer pos, py::buffer color){
+    },
+              "Add points");
+    Point.def("add", [](arrayI pos, arrayI color){
         py::buffer_info posInfo = pos.request();
         py::buffer_info colorInfo = color.request();
         if (posInfo.format != py::format_descriptor<float>::format() ||
@@ -66,7 +68,7 @@ PYBIND11_MODULE(threedbg, m) {
     Point.def("flush", &Point::flush, "Flush points");
 
     py::module Line = m.def_submodule("Line", "Draw Lines");
-    Line.def("add", [](py::array_t<float> source, py::array_t<float> target) {
+    Line.def("add", [](arrayI source, arrayI target) {
         py::buffer_info sourceInfo = source.request();
         py::buffer_info targetInfo = target.request();
         if (sourceInfo.ndim != 2 || sourceInfo.shape[1] != 3 ||
@@ -86,7 +88,7 @@ PYBIND11_MODULE(threedbg, m) {
             Line::add(l);
         }
     }, "Add Lines");
-    Line.def("addAABB", [](py::array_t<float> mins, py::array_t<float> maxs) {
+    Line.def("addAABB", [](arrayI mins, arrayI maxs) {
         py::buffer_info sourceInfo = mins.request();
         py::buffer_info targetInfo = maxs.request();
         if (sourceInfo.ndim != 2 || sourceInfo.shape[1] != 3 ||

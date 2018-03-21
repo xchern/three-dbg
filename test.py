@@ -18,7 +18,7 @@ x, y, z = np.meshgrid(x, y, z)
 x = x.flatten()
 y = y.flatten()
 z = z.flatten()
-ps = np.array((x,y,z)).T.astype(np.float32)
+ps = np.array((x,y,z)).T
 
 def test_show_point():
     threedbg.Point.clear()

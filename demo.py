@@ -23,7 +23,7 @@ while threedbg.working():
     t += 0.05
     print(t)
 
-    ps = np.array((x,y,z)).T.astype(np.float32)
+    ps = np.array((x,y,z)).T
     mask = ps[:,2] < math.sin(t)
     ps = ps[mask, :]
 
