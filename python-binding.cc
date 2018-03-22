@@ -22,6 +22,7 @@ inline py::object convert(glm::fvec3 &&v) {
 typedef py::array_t<float, py::array::c_style | py::array::forcecast> arrayI;
 
 PYBIND11_MODULE(threedbg, m) {
+    atexit(threedbg::free);
     m.doc() = R"(Easy debuging 3d graphics with numpy and OpenGL.)";
     m.def("init", &threedbg::init, "init threedbg opengl display");
     m.def("free", &threedbg::free, "free resource");
