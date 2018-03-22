@@ -3,6 +3,7 @@
 using namespace threedbg;
 using namespace threedbg::camera;
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
