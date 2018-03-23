@@ -65,7 +65,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='threedbg',
-    version='0.0.1',
+    version='0.0.2',
     author='Xiaosong Chen',
     author_email='xiaosong0911@gmail.com',
     description='Show 3d primitives with opengl for debuging',
