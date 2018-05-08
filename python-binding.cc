@@ -124,6 +124,7 @@ PYBIND11_MODULE(threedbg, m) {
         d["center"] = convert(camera::getCenter());
         d["up"] = convert(camera::getUp());
         d["fovy"] = camera::getFovy();
+        d["pointSize"] = Point::getPointSize();
         return d;
     }, "dump camera state");
     camera.def("load", [](py::dict d) {
@@ -131,6 +132,7 @@ PYBIND11_MODULE(threedbg, m) {
         camera::setCenter(convert(d["center"]));
         camera::setUp(convert(d["up"]));
         camera::setFovy(d["fovy"].cast<float>());
+        Point::setPointSize(d["pointSize"].cast<float>());
         return d;
     }, "dump camera state");
 
