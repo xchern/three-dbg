@@ -42,14 +42,14 @@ void threedbg::Point::clear(void) {
     pointBuffer.clear();
     colorBuffer.clear();
 }
-void threedbg::Point::flush(void){
+void threedbg::Point::flush(void) {
     lock.lock();
     points = pointBuffer;
     colors = colorBuffer;
     lock.unlock();
 }
 
-static float pointSize = 2e-2;
+static float pointSize = 5e-2;
 
 void threedbg::Point::setPointSize(float p) { pointSize = p; }
 float threedbg::Point::getPointSize(void) { return pointSize; }
@@ -57,12 +57,16 @@ float threedbg::Point::getPointSize(void) { return pointSize; }
 const std::string vertex_shader_src = R"(
 #version 330
 uniform mat4 projMat;
+uniform float pointSize;
+uniform float pointPixels;
+
 in vec3 vPos;
 in vec3 vColor;
 out vec3 fColor;
 void main() {
     fColor = vColor;
     gl_Position = projMat * vec4(vPos.xyz,1);
+    gl_PointSize = max(pointPixels / (gl_Position.w + 5 * pointSize), 1);
 }
 )";
 const std::string fragment_shader_src = R"(
@@ -70,11 +74,11 @@ const std::string fragment_shader_src = R"(
 in vec3 fColor;
 out vec3 oColor;
 void main() {
-    vec2 pos = gl_PointCoord - 0.5;
+    vec2 pos = gl_PointCoord * 2 - 1;
     float l2  = dot(pos, pos);
-    if (l2 > 0.5 * 0.5) discard;
+    if (l2 > 1) discard;
     else oColor = fColor;
-    if (l2 > 0.45 * 0.45) oColor *= 0.5;
+    if (l2 > 0.6) oColor *= 0.1;
 }
 )";
 
@@ -102,6 +106,7 @@ void threedbg::Point::init(void) {
                           (void *)0);
     glEnableVertexAttribArray(colorLoc);
 }
+
 void threedbg::Point::free(void) {
     glDeleteProgram(program);
     glDeleteBuffers(1, &vbo_pos);
@@ -111,10 +116,11 @@ void threedbg::Point::free(void) {
 }
 
 void threedbg::Point::draw(void) {
+    float pointPixels = 0;
     {
         int w, h;
         display::getDisplaySize(&w, &h);
-        glPointSize(h * pointSize);
+        pointPixels = h / camera::getFovy() * pointSize;
     }
     lock.lock();
     glBindBuffer(GL_ARRAY_BUFFER, vbo_pos);
@@ -124,8 +130,11 @@ void threedbg::Point::draw(void) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::fvec3) * colors.size(),
                  &colors[0], GL_STREAM_DRAW);
     glUseProgram(program);
+    glEnable(GL_PROGRAM_POINT_SIZE);
     glm::fmat4 projMat = threedbg::camera::getProjMat();
     glUniformMatrix4fv(glGetUniformLocation(program, "projMat"), 1, false, &projMat[0][0]);
+    glUniform1f(glGetUniformLocation(program, "pointSize"), pointSize);
+    glUniform1f(glGetUniformLocation(program, "pointPixels"), pointPixels);
     glBindVertexArray(vao);
     glDrawArrays(GL_POINTS, 0, points.size());
     lock.unlock();
