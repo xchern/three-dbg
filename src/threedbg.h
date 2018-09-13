@@ -10,7 +10,6 @@
 #include <vector>
 #include <mutex>
 
-#include <GL/gl3w.h>
 #include <glm/glm.hpp>
 
 namespace threedbg {

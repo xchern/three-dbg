@@ -1,4 +1,5 @@
 #include "display.h"
+#include "common.h"
 
 using namespace threedbg;
 using namespace threedbg::display;
