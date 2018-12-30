@@ -115,7 +115,8 @@ void threedbg::display::loopOnce(void) {
     if (screenShotFlag) {
         glFinish();
         pixels.resize(w * h);
-        glReadBuffer(GL_FRONT);
+        glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        glReadBuffer(GL_BACK);
         glReadPixels(0, 0, w, h, GL_RGB, GL_FLOAT, &pixels[0]);
         screenShotFlag = false;
     }

@@ -8,6 +8,7 @@ find_package( PythonLibs REQUIRED)
 include_directories(
     ${PYTHON_INCLUDE_DIRS}
     gl3w
+    external/pybind11/include/
     )
 
 add_library(threedbg SHARED
