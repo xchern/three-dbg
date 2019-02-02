@@ -1,33 +1,33 @@
+#include "points.h"
+#include "lines.h"
+#include "threedbg.h"
+
 #include <thread>
-#include <chrono>
-#include <iostream>
 
-#include "src/threedbg.h"
-
-std::vector<threedbg::Point::Point> cps;
-
-int main(void) {
-    threedbg::init();
-    //threedbg::display::setDisplaySize(800, 600);
-    threedbg::Line::clear();
-    threedbg::Line::addAABB(glm::fvec3(-1, -1, -1), glm::fvec3(1, 1, 1));
-    threedbg::Line::addAxes(glm::fvec3(0, 0, 0), 1);
-    threedbg::Line::flush();
-    threedbg::Line::clear();
-    printf("looping\n");
-    for (float t = 0; threedbg::working(); t += 1e-2) {
-        const float z = sinf(2 * M_PI / 5.f * t);
-        threedbg::Point::clear();
-        for (float x = -5; x <= 5; x++)
-            for (float y = -5; y <= 5; y++)
-                threedbg::Point::add(glm::fvec3(x / 5, y / 5, z));
-        threedbg::Point::flush();
+int main() {
+    threedbg::initDisplay();
+    for (float time = 0; threedbg::working() && time < 10; time += 0.01) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        threedbg::camera::rotateEye(.001, 0);
-        auto pixels = threedbg::display::getImage();
-        int w, h; threedbg::display::getDisplaySize(&w, &h);
-        std::cout << pixels.size() << ' ' << w << ' ' << h << std::endl;
+        {
+            {
+                std::unique_ptr<PointsDrawerFactory> pdf = std::make_unique<PointsDrawerFactory>();
+                pdf->particleRadius = 0.3;
+                size_t particleNumber = 1;
+                for (int x = -5; x <= 5; x++)
+                    for (int y = -5; y <= 5; y++)
+                        for (int z = -5; z <= 5; z++)
+                            pdf->addPoint(glm::fvec3(x,y,z)/5.f + (float)sin(time), glm::fvec3(0.6));
+                threedbg::addDrawerFactory("points", std::move(pdf));
+            }
+            {
+                std::unique_ptr<LinesDrawerFactory> ldf = std::make_unique<LinesDrawerFactory>();
+                for (int x = -2; x <= 2; x++)
+                    for (int y = -2; y <= 2; y++)
+                        for (int z = -2; z <= 2; z++)
+                            ldf->addAxes({x,y,z}, 0.6);
+                threedbg::addDrawerFactory("lines", std::move(ldf));
+            }
+        }
     }
-    printf("quit\n");
-    threedbg::free();
+    threedbg::freeDisplay();
 }
