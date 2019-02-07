@@ -28,7 +28,7 @@ struct PointsDrawerFactory : DrawerFactory {
     std::vector<glm::fvec3> pos, col;
     PointsDrawerFactory() : particleNumber(0), particleRadius(1) {}
     PointsDrawer * createPointDrawer();
-    void addPoint(size_t n, glm::fvec3 * p, glm::fvec3 * c) {
+    void addPoints(size_t n, glm::fvec3 * p, glm::fvec3 * c) {
         pos.insert(pos.end(), p, p+n);
         col.insert(col.end(), c, c+n);
         particleNumber += n;

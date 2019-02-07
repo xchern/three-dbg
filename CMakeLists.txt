@@ -1,5 +1,5 @@
-include_directories(${CMAKE_SOURCE_DIR})
-include_directories(${CMAKE_SOURCE_DIR}/imgui)
+include_directories(.)
+include_directories(./imgui)
 add_subdirectory(imgui)
 add_library(threedbg
     GL/gl3w.c
