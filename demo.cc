@@ -5,6 +5,7 @@
 #include <thread>
 
 int main() {
+    threedbg::multithread=true;
     threedbg::initDisplay();
     for (float time = 0; threedbg::working() && time < 10; time += 0.01) {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
