@@ -30,13 +30,14 @@ void setCamera(const Camera & c) {
 
 static bool loopOnce() {
     if (!app->loopOnce()) {
+        lock.lock();
         std::map<std::string, std::unique_ptr<DrawerFactory>> dfs = std::move(drawerFactories);
         drawerFactories.clear();
+        lock.unlock();
         for (auto & p : dfs)
             app->addDrawer(p.first, std::unique_ptr<Drawer>(p.second->createDrawer()));
         return true;
     } else {
-        app.reset(nullptr);
         working_flag = false;
         return false;
     }
@@ -52,6 +53,7 @@ void initDisplay(void) {
             app = std::make_unique<ViewerApp>();
             working_flag = true;
             while(loopOnce());
+            app.reset(nullptr);
             });
     while(!working_flag);
     } else {
@@ -63,6 +65,8 @@ void freeDisplay(void) {
     if (app) app->closeWindow();
     if (multithread)
         displayThread.join();
+    else
+        app.reset(nullptr);
     glfwTerminate();
 }
 void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {

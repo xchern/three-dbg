@@ -57,6 +57,7 @@ ViewerApp::ViewerApp(int width, int height) {
     LinesDrawer::initGL();
 }
 ViewerApp::~ViewerApp() {
+    drawers.clear();
     LinesDrawer::freeGL();
     PointsDrawer::freeGL();
     ImGui_ImplOpenGL3_Shutdown();
