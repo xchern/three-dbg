@@ -26,7 +26,7 @@ ViewerApp::ViewerApp(int width, int height) {
     window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (window == NULL) abort();
     glfwMakeContextCurrent(window);
-    /* glfwSwapInterval(1); */
+    glfwSwapInterval(1);
 
     // Initialize OpenGL loader
     int err = gl3wInit();

@@ -55,7 +55,7 @@ void initDisplay(void) {
             while(loopOnce());
             app.reset(nullptr);
             });
-    while(!working_flag);
+    while (!working_flag) std::this_thread::sleep_for(std::chrono::milliseconds(1));
     } else {
     app = std::make_unique<ViewerApp>();
     working_flag = true;
