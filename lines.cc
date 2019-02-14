@@ -3,8 +3,8 @@
 static const char vert_src[] = R"(
 #version 330
 uniform mat4 VP;
-in vec3 vPos;
-in vec3 vColor;
+layout (location = 0) in vec3 vPos;
+layout (location = 1) in vec3 vColor;
 out vec3 fColor;
 void main() {
     fColor = vColor;
