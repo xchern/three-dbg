@@ -1,6 +1,13 @@
-include_directories(.)
-include_directories(./imgui)
+find_package(OpenGL REQUIRED)
+find_package(GLFW3 CONFIG REQUIRED)
+
+include_directories(
+    .
+    ./imgui
+    ${OPENGL_INCLUDE_DIR}
+    )
 add_subdirectory(imgui)
+
 add_library(threedbg
     GL/gl3w.c
     ViewerApp.cc
@@ -11,12 +18,17 @@ add_library(threedbg
     threedbg.cc
     )
 target_link_libraries(threedbg
+    ${OPENGL_LIBRARIES}
     glfw
-    dl
-    GL
     imgui
-    pthread
     )
+if (UNIX)
+    target_link_libraries(threedbg
+        dl
+        pthread
+        )
+endif (UNIX)
+
 add_executable(demo
     demo.cc
     )
