@@ -5,6 +5,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 
+#ifndef M_PI
+#define M_PI 3.141592653
+#endif
+
 struct Camera {
     glm::vec3 eye, center, up;
     float target_size;
@@ -65,7 +69,7 @@ struct Camera {
     }
     void ImGuiDrag() {
         auto & io = ImGui::GetIO();
-        auto delta = glm::vec2(io.MouseDelta.x, -io.MouseDelta.y) / io.DisplaySize.y;
+        auto delta = glm::vec2(io.MouseDelta.x, -io.MouseDelta.y) / io.DisplaySize.y * 2.f;
         ImGui::Text("Click & Drag:");
         ImGui::SameLine();
         ImGui::Button("Rotate");
