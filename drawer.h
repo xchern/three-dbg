@@ -17,7 +17,6 @@
 
 struct draw_param {
     float mat[4][4];
-    float resolution[2];
     Camera cam;
 };
 
@@ -55,19 +54,21 @@ inline bool linkProgram(GLuint program, GLuint vert_shdr, GLuint frag_shdr) {
 }
 
 inline std::string getShaderInfoLog(GLuint shader) {
-    GLint maxLength; // The maxLength includes the NULL character
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
-    std::string infoLog(maxLength, '\0');
-    glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
-    return &infoLog[0];
+    GLint length; // The length includes the NULL character
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+    std::string infoLog(length, '\0');
+    glGetShaderInfoLog(shader, length, &length, &infoLog[0]);
+    infoLog.resize(length);
+    return infoLog;
 }
 
 inline std::string getProgramInfoLog(GLuint program) {
-    GLint maxLength;
-    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
-    std::string infoLog(maxLength, '\0');
-    glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
-    return infoLog.c_str();
+    GLint length;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+    std::string infoLog(length, '\0');
+    glGetProgramInfoLog(program, length, &length, &infoLog[0]);
+    infoLog.resize(length);
+    return infoLog;
 }
 
 inline int programFromSource(GLuint program, const char * vert_src, const char * frag_src) {

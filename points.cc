@@ -80,7 +80,7 @@ void PointsDrawer::draw(const struct draw_param & dp) {
     int VPLoc = glGetUniformLocation(program, "VP");
     glUniformMatrix4fv(VPLoc, 1, GL_FALSE, &dp.mat[0][0]);
     int vUnitSizeLoc = glGetUniformLocation(program, "unitSize");
-    glUniform1f(vUnitSizeLoc, dp.resolution[1]/dp.cam.getFovy());
+    glUniform1f(vUnitSizeLoc, dp.cam.resolution[1]/dp.cam.getFovy());
     int radiusLoc = glGetUniformLocation(program, "radius");
     glUniform1f(radiusLoc, particleRadius);
     glBindVertexArray(vao);

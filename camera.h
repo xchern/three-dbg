@@ -12,14 +12,16 @@
 struct Camera {
     glm::vec3 eye, center, up;
     float target_size;
-    Camera() : eye(5,4,3), center(0,0,0), up(0,0,1), target_size(2) {}
+    glm::ivec2 resolution;
+    Camera() : eye(5, 4, 3), center(0, 0, 0), up(0, 0, 1), target_size(2), resolution(960, 720) {}
     float getFovy() const {
         return 2 * atan(target_size/getDist());
     }
     float getDist() const {
         return length(eye-center);
     }
-    glm::mat4 getMat(float ratio) const {
+    glm::mat4 getMat() const {
+        float ratio = (float)resolution.x / resolution.y;
         const float dist = getDist();
         return glm::perspective(getFovy(), ratio, 5e-2f * dist, 1e3f * dist)
             * glm::lookAt(eye, center, up);

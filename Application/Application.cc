@@ -1,12 +1,26 @@
-#include "ViewerApp.h"
+#include "Application.h"
+
+#include <GLFW/glfw3.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "lines.h"
-#include "points.h"
+static struct _GLFW {
+    _GLFW() {
+        glfwSetErrorCallback([](int error, const char* description) {
+            fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+        });
+        if (!glfwInit()) abort();
 
-ViewerApp::ViewerApp(int width, int height) {
+    }
+    ~_GLFW() {
+        glfwTerminate();
+    }
+} _glfw;
+
+Application::Application(const char * title, int width, int height) {
     // Decide GL+GLSL versions
 #if __APPLE__
     // GL 3.3 + GLSL 330
@@ -22,7 +36,7 @@ ViewerApp::ViewerApp(int width, int height) {
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
     // Create window with graphics context
-    const char title[] = "3d debug";
+    if (!title) title = "OpenGL Application";
     window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (window == NULL) abort();
     glfwMakeContextCurrent(window);
@@ -34,9 +48,6 @@ ViewerApp::ViewerApp(int width, int height) {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         exit(1);
     }
-
-    glEnable(GL_DEPTH_TEST);
-    glClearColor(0.9,0.9,0.9,1);
 
     // Setup Dear ImGui binding
     IMGUI_CHECKVERSION();
@@ -53,67 +64,38 @@ ViewerApp::ViewerApp(int width, int height) {
     //ImGui::StyleColorsLight();
     //ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
-    PointsDrawer::initGL();
-    LinesDrawer::initGL();
+    glfwMakeContextCurrent(nullptr);
 }
-ViewerApp::~ViewerApp() {
-    drawers.clear();
-    LinesDrawer::freeGL();
-    PointsDrawer::freeGL();
+
+Application::~Application() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     glfwDestroyWindow(window);
 }
-void ViewerApp::ShowDrawers() {
-    if (ImGui::CollapsingHeader("Drawers")) {
-        for (auto & d : drawers)
-            ImGui::Checkbox(d.first.c_str(), &d.second.enable);
-    }
-}
-int ViewerApp::loopOnce() {
-    if (glfwWindowShouldClose(window)) return 1;
+
+void Application::newFrame() {
     glfwPollEvents();
-    struct draw_param dp;
-    {
-        int w, h;
-        glfwGetFramebufferSize(window, &w, &h);
-        glViewport(0, 0, w, h);
-        dp.resolution[0] = w;
-        dp.resolution[1] = h;
-        auto mat = cam.getMat(dp.resolution[0]/dp.resolution[1]);
-        memcpy(&dp.mat, &mat, 16 * sizeof(float));
-        dp.cam = cam;
-    }
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    bindContext();
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    const float dist = 8.f;
-    ImVec2 window_pos = ImVec2(ImGui::GetIO().DisplaySize.x - dist, dist);
-    ImVec2 window_pos_pivot = ImVec2(1.0f, 0.0f);
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-    ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
-    if (ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav)) {
-        ImGui::Text("framerate: %.1ffps", ImGui::GetIO().Framerate);
-        ImGui::Checkbox("control camera", &cc);
-    }
-    ShowDrawers();
-    ImGui::End();
-    if (cc) {
-
-        if (ImGui::Begin("camera")) {
-            cam.ImGuiDrag();
-            cam.ImGuiEdit();
-        }
-        ImGui::End();
-    }
-
-    for (auto & d : drawers)
-        if (d.second.enable)
-            d.second.ptr->draw(dp);
+}
+void Application::endFrame() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window);
-    return 0;
+    unbindContext();
+}
+
+bool Application::shouldClose() { return glfwWindowShouldClose(window); }
+void Application::close() { glfwSetWindowShouldClose(window, true); }
+
+void Application::bindContext() {
+    mutex.lock();
+    glfwMakeContextCurrent(window);
+}
+void Application::unbindContext() {
+    glfwMakeContextCurrent(nullptr);
+    mutex.unlock();
 }
