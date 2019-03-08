@@ -15,9 +15,8 @@ void main() {
 static const char frag_src[] = R"(
 #version 330
 in vec3 fColor;
-out vec3 oColor;
 void main() {
-    oColor = fColor;
+    gl_FragColor = vec4(fColor, 1.0);
 }
 )";
 
