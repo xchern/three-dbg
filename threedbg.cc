@@ -6,6 +6,8 @@
 
 #include "Application.h"
 
+#define errorfln(fmt, ...) fprintf(stderr, fmt"\n", __VA_ARGS__)
+
 class ThreedbgApp : public Application {
 public:
     ThreedbgApp(int width = 1280, int height = 720);
@@ -18,8 +20,17 @@ public:
         else
             drawers[name] = {true, std::move(d)};
     }
+    void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
+        auto _ctx = Application::getScopedContext();
+        draw();
+        w = cam.resolution[0]; h = cam.resolution[1];
+        pixels.resize(w* h * 3);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+        glCheckError();
+    }
 private:
     DrawingCtx ctx;
+    ImageViewer iv;
 
     struct DrawerItem {
         bool enable;
@@ -27,6 +38,8 @@ private:
     };
     std::map<std::string, struct DrawerItem> drawers;
     void draw() {
+        ctx.bindFB(cam.resolution.x, cam.resolution.y);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         struct draw_param dp;
         {
             auto mat = cam.getMat();
@@ -66,34 +79,38 @@ int ThreedbgApp::loopOnce() {
     if (Application::shouldClose()) return 1;
     Application::newFrame();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    const float dist = 8.f;
-    ImVec2 window_pos = ImVec2(ImGui::GetIO().DisplaySize.x - dist, dist);
-    ImVec2 window_pos_pivot = ImVec2(1.0f, 0.0f);
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-    ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
-    if (ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav)) {
-        ImGui::Text("framerate: %.1ffps", ImGui::GetIO().Framerate);
+
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        ImDrawList * drawList = ImGui::GetOverlayDrawList();
+        drawList->PushClipRectFullScreen();
+        {
+            char text[64];
+            sprintf(text, "%.1f fps", ImGui::GetIO().Framerate);
+            ImVec2 size = ImGui::CalcTextSize(text);
+            drawList->AddText(ImVec2(io.DisplaySize.x - size.x - 4, io.DisplaySize.y - size.y - 4), 0xff000000, text);
+        }
+        drawList->PopClipRect();
     }
-    ImGui::End();
+
     if (ImGui::Begin("drawers")) {
         ImGuiSwitchDrawers();
     }
     ImGui::End();
     if (ImGui::Begin("camera")) {
         ImGuiManipulateCamera();
-        if (ImGui::Button("fit resolution to screen")) {
-            auto &io = ImGui::GetIO();
-            cam.resolution[0] = io.DisplaySize.x;
-            cam.resolution[1] = io.DisplaySize.y;
-        }
     }
     ImGui::End();
 
-    ctx.bindFB(cam);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     draw();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    ImGui::Image((ImTextureID)ctx.texture, ImVec2(cam.resolution.x, cam.resolution.y), ImVec2(0, 1), ImVec2(1, 0));
+
+    if (ImGui::Begin("image")) {
+        iv.Show(ctx.texture, ImVec2(ctx.resolution[0], ctx.resolution[1]));
+    }
+    ImGui::End();
+
+    //ImGui::ShowDemoWindow();
 
     Application::endFrame();
     glCheckError();
@@ -157,5 +174,8 @@ bool working(void) {
     if (!multithread)
         loopOnce();
     return app && !app->shouldClose();
+}
+void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
+    app->snapshot(w, h, pixels);
 }
 }

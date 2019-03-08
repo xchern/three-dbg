@@ -56,7 +56,7 @@ Application::Application(const char * title, int width, int height) {
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-    io.IniFilename = NULL; // Disable saving to file "imgui.ini"
+    //io.IniFilename = NULL; // Disable saving to file "imgui.ini"
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -84,8 +84,8 @@ void Application::newFrame() {
 void Application::endFrame() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    glfwSwapBuffers(window);
     unbindContext(); // allow other thread get context during swap waiting
+    glfwSwapBuffers(window);
     bindContext();
 }
 

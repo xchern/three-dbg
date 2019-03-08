@@ -112,32 +112,60 @@ struct DrawingCtx {
         glCheckError();
 
     }
-    glm::ivec2 resolution = { 0,0 };
-    void bindFB(Camera cam) {
+    int resolution[2] = { 0,0 };
+    void bindFB(int weight, int height) {
         glBindFramebuffer(GL_FRAMEBUFFER, fb);
         glCheckError();
-        // create a color attachment texture
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, cam.resolution.x, cam.resolution.y, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
-        glCheckError();
-        // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-        glBindRenderbuffer(GL_RENDERBUFFER, rb);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, cam.resolution.x, cam.resolution.y); // use a single renderbuffer object for both a depth AND stencil buffer.
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rb); // now actually attach it
-        glCheckError();
-        // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
-        assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-        glViewport(0, 0, cam.resolution.x, cam.resolution.y);
-        //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glCheckError();
+        if (resolution[0] != weight || resolution[1] != height) {
+            resolution[0] = weight; resolution[1] = height;
+            // create a color attachment texture
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, resolution[0], resolution[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture, 0);
+            glCheckError();
+            // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+            glBindRenderbuffer(GL_RENDERBUFFER, rb);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution[0], resolution[1]); // use a single renderbuffer object for both a depth AND stencil buffer.
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rb); // now actually attach it
+            glCheckError();
+            // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+            assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+            glViewport(0, 0, resolution[0], resolution[1]);
+            glCheckError();
+        }
     }
     ~DrawingCtx() {
         glDeleteFramebuffers(1, &fb);
         glDeleteTextures(1, &texture);
         glDeleteRenderbuffers(1, &rb);
         glCheckError();
+    }
+};
+
+struct ImageViewer {
+    enum { SCALE_ORIGIN, SCALE_FIT_FRAME, SCALE_FIT_WIDTH };
+    int fit = SCALE_ORIGIN;
+    void Show(GLuint texture, ImVec2 size) {
+        if (ImGui::RadioButton("origin size", fit == SCALE_ORIGIN)) fit = SCALE_ORIGIN;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("fit frame", fit == SCALE_FIT_FRAME)) fit = SCALE_FIT_FRAME;
+        ImGui::SameLine();
+        if (ImGui::RadioButton("fit width", fit == SCALE_FIT_WIDTH)) fit = SCALE_FIT_WIDTH;
+
+        if (fit == SCALE_FIT_WIDTH) {
+            float scale = ImGui::GetWindowContentRegionWidth() / size.x * 0.95f;
+            size.x *= scale; size.y *= scale;
+        } else if (fit == SCALE_FIT_FRAME) {
+            float scale = fmin(ImGui::GetWindowContentRegionWidth() / size.x, ImGui::GetWindowHeight() / size.y) * 0.95f;
+            size.x *= scale; size.y *= scale;
+        }
+
+        ImGui::BeginChild("image", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+        float x = fmax((ImGui::GetWindowContentRegionWidth() - size.x) * 0.5f, 0);
+        ImGui::SameLine(x);
+        ImGui::Image((ImTextureID)texture, size, ImVec2(0, 1), ImVec2(1, 0), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 1));
+        ImGui::EndChild();
     }
 };
