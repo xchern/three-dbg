@@ -14,21 +14,19 @@ protected:
     ~Application();
     void newFrame();
     void endFrame();
-public:
-    bool shouldClose();
-    void close();
     // thread safe (exclusive)
     void bindContext();
     void unbindContext();
+public:
+    bool shouldClose();
+    void close();
 
     // scoped version for convinience
     struct ContextRAII{
         Application * ptr;
-        ContextRAII(Application * app) : ptr(app) { ptr->bindContext(); }
+        ContextRAII(Application * app) : ptr(app) { if (ptr) ptr->bindContext(); }
         ContextRAII(ContextRAII&& c) { ptr = c.ptr; c.ptr = nullptr; }
         ~ContextRAII() { if (ptr) ptr->unbindContext(); }
     };
-    ContextRAII getScopedContext() {
-        return ContextRAII(this);
-    }
+    ContextRAII getScopedContext();
 };

@@ -30,17 +30,17 @@ private:
 };
 
 ThreedbgApp::ThreedbgApp(int width, int height) : Application("3D debug", width, height) {
-    auto _ctx = Application::getScopedContext();
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.9,0.9,0.9,1);
     PointsDrawer::initGL();
     LinesDrawer::initGL();
+    glCheckError();
 }
 ThreedbgApp::~ThreedbgApp() {
-    auto _ctx = Application::getScopedContext();
     drawers.clear();
     LinesDrawer::freeGL();
     PointsDrawer::freeGL();
+    glCheckError();
 }
 void ThreedbgApp::ShowDrawers() {
     if (ImGui::CollapsingHeader("Drawers")) {
@@ -49,6 +49,7 @@ void ThreedbgApp::ShowDrawers() {
     }
 }
 int ThreedbgApp::loopOnce() {
+    glCheckError();
     if (Application::shouldClose()) return 1;
     Application::newFrame();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -86,7 +87,9 @@ int ThreedbgApp::loopOnce() {
     for (auto & d : drawers)
         if (d.second.enable)
             d.second.ptr->draw(dp);
+    glCheckError();
     Application::endFrame();
+    glCheckError();
     return 0;
 }
 
@@ -106,10 +109,11 @@ static bool loopOnce() {
         std::map<std::string, std::unique_ptr<DrawerFactory>> dfs = std::move(drawerFactories);
         drawerFactories.clear();
         lock.unlock();
-        app->bindContext();
-        for (auto & p : dfs)
-            app->addDrawer(p.first, std::unique_ptr<Drawer>(p.second->createDrawer()));
-        app->unbindContext();
+        {
+            auto _ctx = app->getScopedContext();
+            for (auto & p : dfs)
+                app->addDrawer(p.first, std::unique_ptr<Drawer>(p.second->createDrawer()));
+        }
         return true;
     } else {
         return false;

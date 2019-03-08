@@ -32,14 +32,15 @@ Application::Application(const char * title, int width, int height) {
     // GL 3.3 + GLSL 330
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
     // Create window with graphics context
     if (!title) title = "OpenGL Application";
     window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (window == NULL) abort();
-    glfwMakeContextCurrent(window);
+
+    Application::bindContext();
     glfwSwapInterval(1);
 
     // Initialize OpenGL loader
@@ -64,7 +65,6 @@ Application::Application(const char * title, int width, int height) {
     //ImGui::StyleColorsLight();
     //ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
-    glfwMakeContextCurrent(nullptr);
 }
 
 Application::~Application() {
@@ -76,7 +76,6 @@ Application::~Application() {
 
 void Application::newFrame() {
     glfwPollEvents();
-    bindContext();
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -85,7 +84,8 @@ void Application::endFrame() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window);
-    unbindContext();
+    unbindContext(); // allow other thread get context during swap waiting
+    bindContext();
 }
 
 bool Application::shouldClose() { return glfwWindowShouldClose(window); }
@@ -98,4 +98,10 @@ void Application::bindContext() {
 void Application::unbindContext() {
     glfwMakeContextCurrent(nullptr);
     mutex.unlock();
+}
+
+Application::ContextRAII Application::getScopedContext() {
+    if (glfwGetCurrentContext() == window)
+        return ContextRAII(nullptr);
+    return ContextRAII(this);
 }
