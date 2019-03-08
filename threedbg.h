@@ -8,7 +8,7 @@
 namespace threedbg {
 extern bool multithread;
 void initDisplay(void);
-void freeDisplay(void);
+void freeDisplay(bool force = false);
 void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df);
 bool working(void);
 }

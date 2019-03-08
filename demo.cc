@@ -30,5 +30,5 @@ int main() {
             }
         }
     }
-    threedbg::freeDisplay();
+    threedbg::freeDisplay(false);
 }

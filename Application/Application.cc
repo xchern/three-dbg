@@ -40,7 +40,7 @@ Application::Application(const char * title, int width, int height) {
     window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (window == NULL) abort();
 
-    Application::bindContext();
+    bindContext();
     glfwSwapInterval(1);
 
     // Initialize OpenGL loader
@@ -71,6 +71,7 @@ Application::~Application() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+    unbindContext();
     glfwDestroyWindow(window);
 }
 

@@ -67,6 +67,7 @@ struct Camera {
         ImGui::InputFloat3("center", (float*)&center, "%g");
         ImGui::InputFloat3("up", (float*)&up, "%g");
         ImGui::InputFloat("target size", (float*)&target_size, 0,0,"%g");
+        ImGui::InputInt2("resolution", (int*)&resolution);
         target_size = glm::max(0.f, target_size);
     }
     void ImGuiDrag() {

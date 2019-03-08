@@ -11,59 +11,61 @@ public:
     ThreedbgApp(int width = 1280, int height = 720);
     ~ThreedbgApp();
     // get context before calling
-    void addDrawer(std::string name, std::unique_ptr<Drawer> && d) {
+    int loopOnce();
+    void addDrawer(std::string name, std::unique_ptr<Drawer> d) {
         if (drawers.find(name) != drawers.end())
             drawers[name].ptr = std::move(d);
         else
             drawers[name] = {true, std::move(d)};
     }
-    int loopOnce();
 private:
-    bool cc = false;
-    Camera cam;
+    DrawingCtx ctx;
+
     struct DrawerItem {
         bool enable;
         std::unique_ptr<Drawer> ptr;
     };
     std::map<std::string, struct DrawerItem> drawers;
-    void ShowDrawers();
+    void draw() {
+        struct draw_param dp;
+        {
+            auto mat = cam.getMat();
+            memcpy(&dp.mat, &mat, 16 * sizeof(float));
+            dp.cam = cam;
+        }
+        for (auto & d : drawers)
+            if (d.second.enable)
+                d.second.ptr->draw(dp);
+    }
+    Camera cam;
+    void ImGuiManipulateCamera() {
+        cam.ImGuiDrag();
+        cam.ImGuiEdit();
+    }
+    void ImGuiSwitchDrawers() {
+        for (auto & d : drawers) ImGui::Checkbox(d.first.c_str(), &d.second.enable);
+    }
 };
 
 ThreedbgApp::ThreedbgApp(int width, int height) : Application("3D debug", width, height) {
+    ImGui::StyleColorsLight();
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.9,0.9,0.9,1);
+    glClearColor(0.9,0.9,0.9,0);
+    static bool run = false;
     PointsDrawer::initGL();
     LinesDrawer::initGL();
     glCheckError();
 }
 ThreedbgApp::~ThreedbgApp() {
-    drawers.clear();
     LinesDrawer::freeGL();
     PointsDrawer::freeGL();
     glCheckError();
-}
-void ThreedbgApp::ShowDrawers() {
-    if (ImGui::CollapsingHeader("Drawers")) {
-        for (auto & d : drawers)
-            ImGui::Checkbox(d.first.c_str(), &d.second.enable);
-    }
 }
 int ThreedbgApp::loopOnce() {
     glCheckError();
     if (Application::shouldClose()) return 1;
     Application::newFrame();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    { // update camera resolution
-        auto &io = ImGui::GetIO();
-        cam.resolution[0] = io.DisplaySize.x;
-        cam.resolution[1] = io.DisplaySize.y;
-    }
-    struct draw_param dp;
-    {
-        auto mat = cam.getMat();
-        memcpy(&dp.mat, &mat, 16 * sizeof(float));
-        dp.cam = cam;
-    }
     const float dist = 8.f;
     ImVec2 window_pos = ImVec2(ImGui::GetIO().DisplaySize.x - dist, dist);
     ImVec2 window_pos_pivot = ImVec2(1.0f, 0.0f);
@@ -71,29 +73,35 @@ int ThreedbgApp::loopOnce() {
     ImGui::SetNextWindowBgAlpha(0.3f); // Transparent background
     if (ImGui::Begin("Overlay", NULL, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav)) {
         ImGui::Text("framerate: %.1ffps", ImGui::GetIO().Framerate);
-        ImGui::Checkbox("control camera", &cc);
     }
-    ShowDrawers();
     ImGui::End();
-    if (cc) {
-
-        if (ImGui::Begin("camera")) {
-            cam.ImGuiDrag();
-            cam.ImGuiEdit();
-        }
-        ImGui::End();
+    if (ImGui::Begin("drawers")) {
+        ImGuiSwitchDrawers();
     }
+    ImGui::End();
+    if (ImGui::Begin("camera")) {
+        ImGuiManipulateCamera();
+        if (ImGui::Button("fit resolution to screen")) {
+            auto &io = ImGui::GetIO();
+            cam.resolution[0] = io.DisplaySize.x;
+            cam.resolution[1] = io.DisplaySize.y;
+        }
+    }
+    ImGui::End();
 
-    for (auto & d : drawers)
-        if (d.second.enable)
-            d.second.ptr->draw(dp);
-    glCheckError();
+    ctx.bindFB(cam);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    ImGui::Image((ImTextureID)ctx.texture, ImVec2(cam.resolution.x, cam.resolution.y), ImVec2(0, 1), ImVec2(1, 0));
+
     Application::endFrame();
     glCheckError();
     return 0;
 }
 
 #include <thread>
+#include <mutex>
 
 namespace threedbg {
 // basicly ThreedbgApp + thread-safe drawerfactories as cache
@@ -122,18 +130,19 @@ static bool loopOnce() {
 
 void initDisplay(void) {
     if (multithread) {
-    displayThread = std::thread([&](void) { // new thread for opengl display
+        displayThread = std::thread([&](void) { // new thread for opengl display
             app = std::make_unique<ThreedbgApp>();
-            while(loopOnce());
+            while (loopOnce());
             app.reset(nullptr);
-            });
-    while (!working()) std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    } else {
-    app = std::make_unique<ThreedbgApp>();
+        });
+        while (!working()) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    else {
+        app = std::make_unique<ThreedbgApp>();
     }
 }
-void freeDisplay(void) {
-    if (app) app->close();
+void freeDisplay(bool force) {
+    if (force && app) app->close();
     if (multithread)
         displayThread.join();
     else
