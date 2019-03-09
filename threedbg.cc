@@ -12,7 +12,6 @@ class ThreedbgApp : public Application {
 public:
     ThreedbgApp(int width = 1280, int height = 720);
     ~ThreedbgApp();
-    // get context before calling
     int loopOnce();
     void addDrawer(std::string name, std::unique_ptr<Drawer> d) {
         if (drawers.find(name) != drawers.end())
@@ -128,21 +127,21 @@ static std::mutex lock; // for drawerFactories
 static std::map<std::string, std::unique_ptr<DrawerFactory>> drawerFactories;
 static std::unique_ptr<ThreedbgApp> app = nullptr;
 
-static bool loopOnce() {
-    if (!app->loopOnce()) {
-        lock.lock();
-        std::map<std::string, std::unique_ptr<DrawerFactory>> dfs = std::move(drawerFactories);
-        drawerFactories.clear();
-        lock.unlock();
-        {
-            auto _ctx = app->getScopedContext();
-            for (auto & p : dfs)
-                app->addDrawer(p.first, std::unique_ptr<Drawer>(p.second->createDrawer()));
-        }
-        return true;
-    } else {
-        return false;
+static void makeDrawers() {
+    lock.lock();
+    std::map<std::string, std::unique_ptr<DrawerFactory>> dfs = std::move(drawerFactories);
+    drawerFactories.clear();
+    lock.unlock();
+    {
+        auto _ctx = app->getScopedContext();
+        for (auto & p : dfs)
+            app->addDrawer(p.first, std::unique_ptr<Drawer>(p.second->createDrawer()));
     }
+}
+
+static bool loopOnce() {
+    makeDrawers();
+    return !app->loopOnce();
 }
 
 void initDisplay(void) {

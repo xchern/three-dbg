@@ -28,6 +28,8 @@ int main() {
                             ldf->addAxes({x,y,z}, 0.6);
                 threedbg::addDrawerFactory("lines", std::move(ldf));
             }
+            int w, h; std::vector<unsigned char> pixels;
+            threedbg::snapshot(w, h, pixels);
         }
     }
     threedbg::freeDisplay(false);
