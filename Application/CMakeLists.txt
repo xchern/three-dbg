@@ -1,5 +1,5 @@
 find_package(OpenGL REQUIRED)
-find_package(GLFW3 CONFIG REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
 include_directories(
     .
@@ -38,7 +38,7 @@ target_link_libraries(Application
     )
 
 if (UNIX)
-    target_link_libraries(threedbg
+    target_link_libraries(Application
         dl # used by gl3w for loading OpenGL functions
         pthread # multithread utilities in std:: namespace
         )
