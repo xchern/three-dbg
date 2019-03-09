@@ -25,6 +25,7 @@ public:
         w = cam.resolution[0]; h = cam.resolution[1];
         pixels.resize(w* h * 3);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glCheckError();
     }
 private:
