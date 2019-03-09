@@ -165,7 +165,7 @@ struct ImageViewer {
         ImGui::BeginChild("image", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
         float x = fmax((ImGui::GetWindowContentRegionWidth() - size.x) * 0.5f, 0);
         ImGui::SameLine(x);
-        ImGui::Image((ImTextureID)texture, size, ImVec2(0, 1), ImVec2(1, 0), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 1));
+        ImGui::Image((ImTextureID)(long long)texture, size, ImVec2(0, 1), ImVec2(1, 0), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 1));
         ImGui::EndChild();
     }
 };
