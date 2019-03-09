@@ -8,6 +8,63 @@
 
 #define errorfln(fmt, ...) fprintf(stderr, fmt"\n", __VA_ARGS__)
 
+class Blocker {
+    enum { RUNNING, PAUSED, STEP } state;
+    bool waiting = false;
+    std::mutex mtx;
+    std::condition_variable cv;
+public:
+    Blocker() : state(PAUSED) {}
+    ~Blocker() {
+        std::unique_lock<std::mutex> lk(mtx);
+        state = RUNNING;
+        cv.notify_all();
+        while (waiting) cv.wait(lk);
+    }
+    void barrier() {
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            waiting = true;
+            while (state == PAUSED) cv.wait(lk);
+            if (state == STEP) state = PAUSED;
+            waiting = false;
+        }
+        cv.notify_all();
+    }
+    void Show() {
+        switch (state)
+        {
+        case Blocker::RUNNING:
+            if (ImGui::Button("pause")) {
+                {
+                    std::unique_lock<std::mutex> lk(mtx);
+                    state = PAUSED;
+                }
+                cv.notify_all();
+            }
+            break;
+        case Blocker::PAUSED:
+            if (ImGui::Button("run")) {
+                {
+                    std::unique_lock<std::mutex> lk(mtx);
+                    while (state == STEP) cv.wait(lk);
+                    state = RUNNING;
+                }
+                cv.notify_all();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("step")) {
+                {
+                    std::unique_lock<std::mutex> lk(mtx);
+                    state = STEP;
+                }
+                cv.notify_all();
+            }
+            break;
+        }
+    }
+};
+
 class ThreedbgApp : public Application {
 public:
     ThreedbgApp(int width = 1280, int height = 720);
@@ -28,9 +85,13 @@ public:
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glCheckError();
     }
+    void barrier() {
+        blk.barrier();
+    }
 private:
     DrawingCtx ctx;
     ImageViewer iv;
+    Blocker blk;
 
     struct DrawerItem {
         bool enable;
@@ -109,6 +170,11 @@ int ThreedbgApp::loopOnce() {
     }
     ImGui::End();
 
+    if (ImGui::Begin("execute")) {
+        blk.Show();
+    }
+    ImGui::End();
+
     //ImGui::ShowDemoWindow();
 
     Application::endFrame();
@@ -170,7 +236,10 @@ void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {
     lock.unlock();
 }
 bool working(void) {
-    if (!multithread)
+    if (!app) return false;
+    if (multithread)
+        app->barrier();
+    if (!multithread) 
         loopOnce();
     return app && !app->shouldClose();
 }
