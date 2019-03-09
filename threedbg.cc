@@ -25,6 +25,7 @@ public:
         {
             std::unique_lock<std::mutex> lk(mtx);
             waiting = true;
+            cv.notify_all();
             while (state == PAUSED) cv.wait(lk);
             if (state == STEP) state = PAUSED;
             waiting = false;
@@ -217,9 +218,8 @@ void initDisplay(void) {
             while (loopOnce());
             app.reset(nullptr);
         });
-        while (!working()) std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    else {
+        while (!app) std::this_thread::yield();
+    } else {
         app = std::make_unique<ThreedbgApp>();
     }
 }
@@ -237,10 +237,7 @@ void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {
 }
 bool working(void) {
     if (!app) return false;
-    if (multithread)
-        app->barrier();
-    if (!multithread) 
-        loopOnce();
+    if (multithread) app->barrier();
     return app && !app->shouldClose();
 }
 void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
