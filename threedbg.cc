@@ -13,6 +13,8 @@ class Blocker {
     bool waiting = false;
     std::mutex mtx;
     std::condition_variable cv;
+    std::vector<float> time_count;
+    std::chrono::time_point<std::chrono::high_resolution_clock> time_point;
 public:
     Blocker() : state(RUNNING) {}
     ~Blocker() {
@@ -22,6 +24,8 @@ public:
         while (waiting) cv.wait(lk);
     }
     void barrier() {
+        float ns = (std::chrono::high_resolution_clock::now() - time_point).count() * 1e-6f;
+        time_count.push_back(ns);
         {
             std::unique_lock<std::mutex> lk(mtx);
             waiting = true;
@@ -31,6 +35,7 @@ public:
             waiting = false;
         }
         cv.notify_all();
+        time_point = std::chrono::high_resolution_clock::now();
     }
     void Show() {
         switch (state)
@@ -63,6 +68,10 @@ public:
             }
             break;
         }
+        const float * data = time_count.data();
+        size_t size = time_count.size();
+        if (size > 30) { data += size - 30; size = 30; }
+        ImGui::PlotLines("time-plot", data, size);
     }
 };
 
