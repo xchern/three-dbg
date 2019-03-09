@@ -88,7 +88,6 @@ void Application::endFrame() {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window);
     unbindContext(); // allow other thread get context
-    std::this_thread::yield();
     while (glfwGetTime() < next_time) {
         std::this_thread::yield();
     }

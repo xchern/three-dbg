@@ -64,7 +64,6 @@ ThreedbgApp::ThreedbgApp(int width, int height) : Application("3D debug", width,
     ImGui::StyleColorsLight();
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.9,0.9,0.9,0);
-    static bool run = false;
     PointsDrawer::initGL();
     LinesDrawer::initGL();
     glCheckError();
@@ -176,6 +175,7 @@ bool working(void) {
     return app && !app->shouldClose();
 }
 void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
+    makeDrawers();
     app->snapshot(w, h, pixels);
 }
 }
