@@ -3,13 +3,16 @@
 #include <GL/gl3w.h>
 
 #include <mutex>
+#include <condition_variable>
 
 #include "imgui.h"
 
 class Application {
 protected:
-    struct GLFWwindow * window;
+    struct GLFWwindow * window = nullptr;
     std::mutex mutex;
+    std::condition_variable cv;
+    bool binded = false;
     Application(const char * title = nullptr, int width = 960, int height = 720);
     ~Application();
     void newFrame();

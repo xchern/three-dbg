@@ -93,12 +93,17 @@ bool Application::shouldClose() { return glfwWindowShouldClose(window); }
 void Application::close() { glfwSetWindowShouldClose(window, true); }
 
 void Application::bindContext() {
-    mutex.lock();
+    std::unique_lock<std::mutex> lk(mutex);
+    cv.wait(lk, [&]() { return !binded; });
+    binded = true;
     glfwMakeContextCurrent(window);
 }
 void Application::unbindContext() {
+    std::unique_lock<std::mutex> lk(mutex);
     glfwMakeContextCurrent(nullptr);
-    mutex.unlock();
+    binded = false;
+    lk.unlock();
+    cv.notify_all();
 }
 
 Application::ContextRAII Application::getScopedContext() {
