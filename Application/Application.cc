@@ -114,7 +114,7 @@ void Application::unbindContext() {
         glfwMakeContextCurrent(nullptr);
         binded = false;
     }
-    cv.notify_one();
+    cv.notify_all();
 }
 
 Application::ContextRAII Application::getScopedContext() {
