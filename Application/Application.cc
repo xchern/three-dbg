@@ -37,6 +37,7 @@ Application::Application(const char * title, int width, int height, int fps) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     // Create window with graphics context
     if (!title) title = "OpenGL Application";
     window = glfwCreateWindow(width, height, title, NULL, NULL);
@@ -95,6 +96,8 @@ void Application::endFrame() {
     bindContext();
 }
 
+void Application::show() { glfwShowWindow(window); }
+void Application::hide() { glfwHideWindow(window); }
 bool Application::shouldClose() { return glfwWindowShouldClose(window); }
 void Application::close() { glfwSetWindowShouldClose(window, true); }
 

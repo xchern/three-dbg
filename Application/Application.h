@@ -27,6 +27,8 @@ protected:
     void bindContext();
     void unbindContext();
 public:
+    void show();
+    void hide();
     bool shouldClose();
     void close();
 

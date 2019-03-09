@@ -14,7 +14,7 @@ class Blocker {
     std::mutex mtx;
     std::condition_variable cv;
 public:
-    Blocker() : state(PAUSED) {}
+    Blocker() : state(RUNNING) {}
     ~Blocker() {
         std::unique_lock<std::mutex> lk(mtx);
         state = RUNNING;
@@ -188,13 +188,13 @@ int ThreedbgApp::loopOnce() {
 
 namespace threedbg {
 // basicly ThreedbgApp + thread-safe drawerfactories as cache
-bool multithread = true;
+bool showGui = true;
 static std::thread displayThread;
 static std::mutex lock; // for drawerFactories
 static std::map<std::string, std::unique_ptr<DrawerFactory>> drawerFactories;
 static std::unique_ptr<ThreedbgApp> app = nullptr;
 
-static void makeDrawers() {
+static void flushDrawers() {
     lock.lock();
     std::map<std::string, std::unique_ptr<DrawerFactory>> dfs = std::move(drawerFactories);
     drawerFactories.clear();
@@ -207,28 +207,28 @@ static void makeDrawers() {
 }
 
 static bool loopOnce() {
-    makeDrawers();
+    flushDrawers();
     return !app->loopOnce();
 }
 
-void initDisplay(void) {
-    if (multithread) {
+void init(void) {
+    if (showGui) {
         displayThread = std::thread([&](void) { // new thread for opengl display
             app = std::make_unique<ThreedbgApp>();
             while (loopOnce());
             app.reset(nullptr);
         });
         while (!app) std::this_thread::yield();
+        app->show();
     } else {
         app = std::make_unique<ThreedbgApp>();
+        app->hide();
     }
 }
-void freeDisplay(bool force) {
+void free(bool force) {
     if (force && app) app->close();
-    if (multithread)
-        displayThread.join();
-    else
-        app.reset(nullptr);
+    if (showGui) displayThread.join();
+    else app.reset(nullptr);
 }
 void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {
     lock.lock();
@@ -236,12 +236,11 @@ void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {
     lock.unlock();
 }
 bool working(void) {
-    if (!app) return false;
-    if (multithread) app->barrier();
+    if (showGui && app) app->barrier();
     return app && !app->shouldClose();
 }
 void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
-    makeDrawers();
+    flushDrawers();
     app->snapshot(w, h, pixels);
 }
 }
