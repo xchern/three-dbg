@@ -136,6 +136,7 @@ namespace threedbg {
 // basicly ThreedbgApp + thread-safe drawerfactories as cache
 bool showGui = true;
 static std::thread displayThread;
+#ifdef _MSC_VER
 class queued_lock {
     std::mutex mtx;
     std::condition_variable cv;
@@ -158,6 +159,9 @@ public:
         cv.notify_all();
     }
 };
+#else
+typedef std::mutex queued_lock;
+#endif
 
 static queued_lock context_lock;
 static queued_lock cache_lock;
@@ -187,10 +191,10 @@ void init(void) {
                 context_lock.lock();
                 app->bindContext();
                 flushDrawers();
+                cache_lock.unlock();
                 app->loopOnce();
                 app->unbindContext();
                 context_lock.unlock();
-                cache_lock.unlock();
                 // limit fps
                 static std::chrono::time_point<std::chrono::high_resolution_clock> prev_tp;
                 int fps_limit = 60;
