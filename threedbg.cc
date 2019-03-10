@@ -12,72 +12,6 @@
 
 #define errorfln(fmt, ...) fprintf(stderr, fmt"\n", __VA_ARGS__)
 
-class Blocker {
-    int state;
-    bool waiting = false;
-    std::mutex mtx;
-    std::condition_variable cv;
-    std::vector<float> time_count;
-    bool previous_timepoint_set = false;
-    std::chrono::time_point<std::chrono::high_resolution_clock> time_point;
-public:
-    enum { RUNNING, PAUSED, STEP };
-    Blocker() : state(RUNNING) {}
-    ~Blocker() {
-        std::unique_lock<std::mutex> lk(mtx);
-        state = RUNNING;
-        cv.notify_all();
-        while (waiting) cv.wait(lk);
-    }
-    void barrier() {
-        if (previous_timepoint_set) {
-            float ns = (std::chrono::high_resolution_clock::now() - time_point).count() * 1e-6f;
-            time_count.push_back(ns);
-        }
-        {
-            std::unique_lock<std::mutex> lk(mtx);
-            waiting = true;
-        }
-        cv.notify_all();
-        {
-            std::unique_lock<std::mutex> lk(mtx);
-            while (state == PAUSED) cv.wait(lk); // wait the signal from control thread
-            if (state == STEP) state = PAUSED;
-            waiting = false;
-        }
-        cv.notify_all();
-        time_point = std::chrono::high_resolution_clock::now();
-        previous_timepoint_set = true;
-    }
-    void setState(int s) {
-        {
-            std::unique_lock<std::mutex> lk(mtx);
-            state = s;
-        }
-        cv.notify_all();
-    }
-    void Show() {
-        switch (state)
-        {
-        case RUNNING:
-            if (ImGui::Button("pause")) setState(PAUSED);
-            break;
-        case PAUSED:
-        case STEP:
-            if (ImGui::Button("run")) setState(RUNNING);
-            ImGui::SameLine();
-            if (ImGui::Button("step")) setState(STEP);
-            break;
-        }
-        const float * data = time_count.data();
-        size_t size = time_count.size();
-        if (size > 50) { data += size - 50; size = 50; }
-        float sum = 0; for (int i = 0; i < size; i++) sum += data[i];
-        ImGui::Text("average %.2f ms", sum / size);
-        ImGui::PlotLines("plot", data, size);
-    }
-};
-
 class ThreedbgApp : public Application {
 public:
     ThreedbgApp(int width = 1280, int height = 720);
@@ -98,12 +32,12 @@ public:
         glCheckError();
     }
     void barrier() {
-        blk.barrier();
+        em.barrier();
     }
 private:
     DrawingCtx ctx;
     ImageViewer iv;
-    Blocker blk;
+    ExecuteManager em;
 
     struct DrawerItem {
         bool enable;
@@ -134,6 +68,7 @@ private:
 };
 
 ThreedbgApp::ThreedbgApp(int width, int height) : Application("3D debug", 0, width, height) {
+    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
     ImGui::StyleColorsLight();
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.9,0.9,0.9,0);
@@ -145,11 +80,11 @@ ThreedbgApp::~ThreedbgApp() {
     LinesDrawer::freeGL();
     PointsDrawer::freeGL();
     glCheckError();
+    em.setState(ExecuteManager::RUNNING);
 }
 void ThreedbgApp::loopOnce() {
     glCheckError();
     Application::newFrame();
-    ImGui::ShowDemoWindow();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
@@ -183,11 +118,11 @@ void ThreedbgApp::loopOnce() {
     ImGui::End();
 
     if (ImGui::Begin("execute")) {
-        blk.Show();
+        em.Show();
     }
     ImGui::End();
 
-    //ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow();
 
     Application::endFrame();
     glCheckError();
@@ -224,8 +159,9 @@ public:
     }
 };
 
-static queued_lock context_mtx;
-static queued_lock cache_mtx;
+static queued_lock context_lock;
+static queued_lock cache_lock;
+static bool running_flag = false;
 
 static std::map<std::string, std::unique_ptr<DrawerFactory>> drawerFactories;
 static std::unique_ptr<ThreedbgApp> app = nullptr;
@@ -240,69 +176,64 @@ static void flushDrawers() {
 void init(void) {
     if (showGui) {
         displayThread = std::thread([&](void) { // new thread for opengl display
-            context_mtx.lock();
+            context_lock.lock();
             app = std::make_unique<ThreedbgApp>();
             app->show();
             app->unbindContext();
-            context_mtx.unlock();
+            context_lock.unlock();
             while (!app->shouldClose()) {
-                cache_mtx.lock();
-                context_mtx.lock();
+                cache_lock.lock();
+                context_lock.lock();
                 app->bindContext();
                 flushDrawers();
                 app->loopOnce();
                 app->unbindContext();
-                context_mtx.unlock();
-                cache_mtx.unlock();
+                context_lock.unlock();
+                cache_lock.unlock();
                 // limit fps
                 static std::chrono::time_point<std::chrono::high_resolution_clock> prev_tp;
-                std::this_thread::sleep_until(prev_tp + std::chrono::nanoseconds(1000000000 / 60));
+                int fps_limit = 60;
+                std::this_thread::sleep_until(prev_tp + std::chrono::nanoseconds(1000000000 / fps_limit));
                 prev_tp = std::chrono::high_resolution_clock::now();
             }
-            context_mtx.lock();
-            app->bindContext();
-            app.reset(nullptr);
-            context_mtx.unlock();
         });
         while (!app) std::this_thread::yield();
     } else {
         app = std::make_unique<ThreedbgApp>();
         app->hide();
+        app->unbindContext();
     }
 }
 void free(bool force) {
-    context_mtx.lock();
-    if (force && app) app->close();
-    context_mtx.unlock();
+    context_lock.lock();
+    if (force) app->close();
+    context_lock.unlock();
     if (showGui) displayThread.join();
-    else {
-        app.reset(nullptr);
-    }
+    context_lock.lock();
+    app->bindContext();
+    app.reset(nullptr);
+    context_lock.unlock();
 }
 void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {
-    cache_mtx.lock();
+    cache_lock.lock();
     drawerFactories[name] = std::move(df);
-    cache_mtx.unlock();
+    cache_lock.unlock();
 }
 bool working(void) {
-    context_mtx.lock();
-    if (showGui && app) app->barrier();
-    bool r = app && !app->shouldClose();
-    context_mtx.unlock();
+    if (showGui) app->barrier();
+    context_lock.lock();
+    bool r = !app->shouldClose();
+    context_lock.unlock();
     return r;
 }
 void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
-    cache_mtx.lock();
-    context_mtx.lock();
-    if (app) {
-        app->bindContext();
-        flushDrawers();
-        app->snapshot(w, h, pixels);
-        app->unbindContext();
-    } else {
-        w = h = 0; pixels.clear();
-    }
-    context_mtx.unlock();
-    cache_mtx.unlock();
+    cache_lock.lock();
+    context_lock.lock();
+    app->bindContext();
+    flushDrawers();
+    app->snapshot(w, h, pixels);
+    app->unbindContext();
+    context_lock.unlock();
+    cache_lock.unlock();
 }
 }

@@ -169,3 +169,73 @@ struct ImageViewer {
         ImGui::EndChild();
     }
 };
+
+#include <vector>
+#include <mutex>
+#include <condition_variable>
+
+class ExecuteManager {
+    int state;
+    bool waiting = false;
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::vector<float> time_count;
+    bool previous_timepoint_set = false;
+    std::chrono::time_point<std::chrono::high_resolution_clock> time_point;
+public:
+    enum { RUNNING, PAUSED, STEP };
+    ExecuteManager() : state(RUNNING) {}
+    ~ExecuteManager() {
+        setState(RUNNING);
+        std::unique_lock<std::mutex> lk(mtx);
+        while (waiting) cv.wait(lk);
+    }
+    void barrier() {
+        if (previous_timepoint_set) {
+            float ns = (std::chrono::high_resolution_clock::now() - time_point).count() * 1e-6f;
+            time_count.push_back(ns);
+        }
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            waiting = true;
+        }
+        cv.notify_all();
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            while (state == PAUSED) cv.wait(lk); // wait the signal from control thread
+            if (state == STEP) state = PAUSED;
+            waiting = false;
+        }
+        cv.notify_all();
+        time_point = std::chrono::high_resolution_clock::now();
+        previous_timepoint_set = true;
+    }
+    void setState(int s) {
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            state = s;
+        }
+        cv.notify_all();
+    }
+    void Show() {
+        switch (state)
+        {
+        case RUNNING:
+            if (ImGui::Button("pause")) setState(PAUSED);
+            break;
+        case PAUSED:
+        case STEP:
+            if (ImGui::Button("run")) setState(RUNNING);
+            ImGui::SameLine();
+            if (ImGui::Button("step")) setState(STEP);
+            break;
+        }
+        const float * data = time_count.data();
+        size_t size = time_count.size();
+        if (size > 50) { data += size - 50; size = 50; }
+        float sum = 0; for (int i = 0; i < size; i++) sum += data[i];
+        ImGui::Text("average %.2f ms", sum / size);
+        ImGui::PlotLines("plot", data, size);
+    }
+};
+
