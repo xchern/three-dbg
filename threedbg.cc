@@ -122,7 +122,7 @@ void ThreedbgApp::loopOnce() {
     }
     ImGui::End();
 
-    ImGui::ShowDemoWindow();
+    //ImGui::ShowDemoWindow();
 
     Application::endFrame();
     glCheckError();
@@ -161,7 +161,7 @@ public:
 
 static queued_lock context_lock;
 static queued_lock cache_lock;
-static bool running_flag = false;
+static bool allow_free = false;
 
 static std::map<std::string, std::unique_ptr<DrawerFactory>> drawerFactories;
 static std::unique_ptr<ThreedbgApp> app = nullptr;
@@ -175,6 +175,7 @@ static void flushDrawers() {
 
 void init(void) {
     if (showGui) {
+        allow_free = false;
         displayThread = std::thread([&](void) { // new thread for opengl display
             context_lock.lock();
             app = std::make_unique<ThreedbgApp>();
@@ -196,6 +197,9 @@ void init(void) {
                 std::this_thread::sleep_until(prev_tp + std::chrono::nanoseconds(1000000000 / fps_limit));
                 prev_tp = std::chrono::high_resolution_clock::now();
             }
+            while (!allow_free) std::this_thread::yield();
+            app->bindContext();
+            app.reset(nullptr);
         });
         while (!app) std::this_thread::yield();
     } else {
@@ -208,11 +212,12 @@ void free(bool force) {
     context_lock.lock();
     if (force) app->close();
     context_lock.unlock();
+    allow_free = true;
     if (showGui) displayThread.join();
-    context_lock.lock();
-    app->bindContext();
-    app.reset(nullptr);
-    context_lock.unlock();
+    else {
+        app->bindContext();
+        app.reset(nullptr);
+    }
 }
 void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {
     cache_lock.lock();
