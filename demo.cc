@@ -7,8 +7,6 @@ int main() {
     threedbg::init();
     for (float time = 0; threedbg::working() && time < 10; time += 0.025) {
         printf("time: %f\n", time);
-        if (threedbg::showGui)
-            std::this_thread::sleep_for(std::chrono::milliseconds(25));
         {
             {
                 std::unique_ptr<PointsDrawerFactory> pdf = std::make_unique<PointsDrawerFactory>();

@@ -34,6 +34,7 @@ public:
     void barrier() {
         em.barrier();
     }
+    Camera cam;
 private:
     DrawingCtx ctx;
     ImageViewer iv;
@@ -57,7 +58,6 @@ private:
             if (d.second.enable)
                 d.second.ptr->draw(dp);
     }
-    Camera cam;
     void ImGuiManipulateCamera() {
         cam.ImGuiDrag();
         cam.ImGuiEdit();
@@ -240,5 +240,8 @@ void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
     app->unbindContext();
     context_lock.unlock();
     cache_lock.unlock();
+}
+Camera & camera() {
+    return app->cam;
 }
 }
