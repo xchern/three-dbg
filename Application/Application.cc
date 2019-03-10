@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <thread>
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -20,9 +21,7 @@ static struct _GLFW {
     }
 } _glfw;
 
-Application::Application(const char * title, int width, int height, int fps) {
-    fps_limit = fps;
-    next_time = glfwGetTime();
+Application::Application(const char * title, int interval, int width, int height) {
     // Decide GL+GLSL versions
 #if __APPLE__
     // GL 3.3 + GLSL 330
@@ -44,7 +43,7 @@ Application::Application(const char * title, int width, int height, int fps) {
     if (window == NULL) abort();
 
     bindContext();
-    glfwSwapInterval(0);
+    glfwSwapInterval(interval);
 
     // Initialize OpenGL loader
     int err = gl3wInit();
@@ -88,12 +87,6 @@ void Application::endFrame() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     glfwSwapBuffers(window);
-    unbindContext(); // allow other thread get context
-    while (glfwGetTime() < next_time) {
-        std::this_thread::yield();
-    }
-    next_time = glfwGetTime() + 1.0 / fps_limit;
-    bindContext();
 }
 
 void Application::show() { glfwShowWindow(window); }
@@ -102,21 +95,10 @@ bool Application::shouldClose() { return glfwWindowShouldClose(window); }
 void Application::close() { glfwSetWindowShouldClose(window, true); }
 
 void Application::bindContext() {
-    std::unique_lock<std::mutex> lk(mutex);
-    waiting_threads.push(std::this_thread::get_id());
-    while (binded || waiting_threads.front() != std::this_thread::get_id())
-        cv.wait(lk);
-    waiting_threads.pop();
     glfwMakeContextCurrent(window);
-    binded = true;
 }
 void Application::unbindContext() {
-    {
-        std::unique_lock<std::mutex> lk(mutex);
-        glfwMakeContextCurrent(nullptr);
-        binded = false;
-    }
-    cv.notify_all();
+    glfwMakeContextCurrent(nullptr);
 }
 
 Application::ContextRAII Application::getScopedContext() {

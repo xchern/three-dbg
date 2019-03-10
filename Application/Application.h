@@ -2,28 +2,17 @@
 
 #include <GL/gl3w.h>
 
-#include <thread>
 #include <mutex>
-#include <condition_variable>
-
-#include <queue>
 
 #include "imgui.h"
 
 class Application {
 protected:
-    int fps_limit;
-    double next_time;
     struct GLFWwindow * window = nullptr;
-    std::mutex mutex;
-    std::condition_variable cv;
-    bool binded = false;
-    std::queue<std::thread::id> waiting_threads;
-    Application(const char * title = nullptr, int width = 960, int height = 720, int fps = 60);
+    Application(const char * title = nullptr, int interval = 1, int width = 960, int height = 720);
     ~Application();
     void newFrame();
     void endFrame();
-    // thread safe (exclusive)
     void bindContext();
     void unbindContext();
 public:
