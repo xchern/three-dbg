@@ -13,9 +13,9 @@ protected:
     ~Application();
     void newFrame();
     void endFrame();
+public:
     void bindContext();
     void unbindContext();
-public:
     void show();
     void hide();
     bool shouldClose();

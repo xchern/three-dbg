@@ -4,6 +4,10 @@
 #include <stdlib.h>
 #include <map>
 
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
 #include "Application.h"
 
 #define errorfln(fmt, ...) fprintf(stderr, fmt"\n", __VA_ARGS__)
@@ -55,11 +59,11 @@ public:
     void Show() {
         switch (state)
         {
-        case Blocker::RUNNING:
+        case RUNNING:
             if (ImGui::Button("pause")) setState(PAUSED);
             break;
-        case Blocker::PAUSED:
-        case Blocker::STEP:
+        case PAUSED:
+        case STEP:
             if (ImGui::Button("run")) setState(RUNNING);
             ImGui::SameLine();
             if (ImGui::Button("step")) setState(STEP);
@@ -78,7 +82,7 @@ class ThreedbgApp : public Application {
 public:
     ThreedbgApp(int width = 1280, int height = 720);
     ~ThreedbgApp();
-    int loopOnce();
+    void loopOnce();
     void addDrawer(std::string name, std::unique_ptr<Drawer> d) {
         if (drawers.find(name) != drawers.end())
             drawers[name].ptr = std::move(d);
@@ -86,7 +90,6 @@ public:
             drawers[name] = {true, std::move(d)};
     }
     void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
-        auto _ctx = Application::getScopedContext();
         draw();
         w = cam.resolution[0]; h = cam.resolution[1];
         pixels.resize(w* h * 3);
@@ -130,7 +133,7 @@ private:
     }
 };
 
-ThreedbgApp::ThreedbgApp(int width, int height) : Application("3D debug", width, height) {
+ThreedbgApp::ThreedbgApp(int width, int height) : Application("3D debug", 0, width, height) {
     ImGui::StyleColorsLight();
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.9,0.9,0.9,0);
@@ -143,10 +146,10 @@ ThreedbgApp::~ThreedbgApp() {
     PointsDrawer::freeGL();
     glCheckError();
 }
-int ThreedbgApp::loopOnce() {
+void ThreedbgApp::loopOnce() {
     glCheckError();
-    if (Application::shouldClose()) return 1;
     Application::newFrame();
+    ImGui::ShowDemoWindow();
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
@@ -188,67 +191,118 @@ int ThreedbgApp::loopOnce() {
 
     Application::endFrame();
     glCheckError();
-    return 0;
 }
 
 #include <thread>
 #include <mutex>
+#include <queue>
 
 namespace threedbg {
 // basicly ThreedbgApp + thread-safe drawerfactories as cache
 bool showGui = true;
 static std::thread displayThread;
-static std::mutex lock; // for drawerFactories
+class queued_lock {
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::queue<std::thread::id> thread_queue;
+    bool locked = false;
+public:
+    void lock() {
+        std::unique_lock<std::mutex> lk(mtx);
+        thread_queue.push(std::this_thread::get_id());
+        while (locked || std::this_thread::get_id() != thread_queue.front())
+            cv.wait(lk);
+        thread_queue.pop();
+        locked = true;
+    }
+    void unlock() {
+        {
+            std::unique_lock<std::mutex> lk(mtx);
+            locked = false;
+        }
+        cv.notify_all();
+    }
+};
+
+static queued_lock context_mtx;
+static queued_lock cache_mtx;
+
 static std::map<std::string, std::unique_ptr<DrawerFactory>> drawerFactories;
 static std::unique_ptr<ThreedbgApp> app = nullptr;
 
 static void flushDrawers() {
-    lock.lock();
     std::map<std::string, std::unique_ptr<DrawerFactory>> dfs = std::move(drawerFactories);
     drawerFactories.clear();
-    lock.unlock();
-    {
-        auto _ctx = app->getScopedContext();
-        for (auto & p : dfs)
-            app->addDrawer(p.first, std::unique_ptr<Drawer>(p.second->createDrawer()));
-    }
-}
-
-static bool loopOnce() {
-    flushDrawers();
-    return !app->loopOnce();
+    for (auto & p : dfs)
+        app->addDrawer(p.first, std::unique_ptr<Drawer>(p.second->createDrawer()));
 }
 
 void init(void) {
     if (showGui) {
         displayThread = std::thread([&](void) { // new thread for opengl display
+            context_mtx.lock();
             app = std::make_unique<ThreedbgApp>();
-            while (loopOnce());
+            app->show();
+            app->unbindContext();
+            context_mtx.unlock();
+            while (!app->shouldClose()) {
+                cache_mtx.lock();
+                context_mtx.lock();
+                app->bindContext();
+                flushDrawers();
+                app->loopOnce();
+                app->unbindContext();
+                context_mtx.unlock();
+                cache_mtx.unlock();
+                // limit fps
+                static std::chrono::time_point<std::chrono::high_resolution_clock> prev_tp;
+                std::this_thread::sleep_until(prev_tp + std::chrono::nanoseconds(1000000000 / 60));
+                prev_tp = std::chrono::high_resolution_clock::now();
+            }
+            context_mtx.lock();
+            app->bindContext();
             app.reset(nullptr);
+            context_mtx.unlock();
         });
         while (!app) std::this_thread::yield();
-        app->show();
     } else {
         app = std::make_unique<ThreedbgApp>();
         app->hide();
     }
 }
 void free(bool force) {
+    context_mtx.lock();
     if (force && app) app->close();
+    context_mtx.unlock();
     if (showGui) displayThread.join();
-    else app.reset(nullptr);
+    else {
+        app.reset(nullptr);
+    }
 }
 void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df) {
-    lock.lock();
+    cache_mtx.lock();
     drawerFactories[name] = std::move(df);
-    lock.unlock();
+    cache_mtx.unlock();
 }
 bool working(void) {
+    context_mtx.lock();
     if (showGui && app) app->barrier();
-    return app && !app->shouldClose();
+    bool r = app && !app->shouldClose();
+    context_mtx.unlock();
+    return r;
 }
 void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
-    flushDrawers();
-    app->snapshot(w, h, pixels);
+    cache_mtx.lock();
+    context_mtx.lock();
+    if (app) {
+        app->bindContext();
+        flushDrawers();
+        app->snapshot(w, h, pixels);
+        app->unbindContext();
+    } else {
+        w = h = 0; pixels.clear();
+    }
+    context_mtx.unlock();
+    cache_mtx.unlock();
 }
 }
