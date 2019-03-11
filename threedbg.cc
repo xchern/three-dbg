@@ -16,6 +16,10 @@ class ThreedbgApp : public Application {
 public:
     ThreedbgApp(int width = 1280, int height = 720);
     ~ThreedbgApp();
+    void close() {
+        Application::close();
+        em.setState(ExecuteManager::RUNNING);
+    }
     void loopOnce();
     void addDrawer(std::string name, std::unique_ptr<Drawer> d) {
         if (drawers.find(name) != drawers.end())
@@ -201,6 +205,7 @@ void init(void) {
                 std::this_thread::sleep_until(prev_tp + std::chrono::nanoseconds(1000000000 / fps_limit));
                 prev_tp = std::chrono::high_resolution_clock::now();
             }
+            app->close();
             while (!allow_free) std::this_thread::yield();
             app->bindContext();
             app.reset(nullptr);
