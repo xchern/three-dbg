@@ -10,6 +10,8 @@
 
 #include "Application.h"
 
+#include "widgets.h"
+
 #define errorfln(fmt, ...) fprintf(stderr, fmt"\n", __VA_ARGS__)
 
 class ThreedbgApp : public Application {
