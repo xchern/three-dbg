@@ -158,7 +158,7 @@ struct ImageViewer {
             float scale = ImGui::GetWindowContentRegionWidth() / size.x * 0.95f;
             size.x *= scale; size.y *= scale;
         } else if (fit == SCALE_FIT_FRAME) {
-            float scale = fmin(ImGui::GetWindowContentRegionWidth() / size.x, ImGui::GetWindowHeight() / size.y) * 0.95f;
+            float scale = fmin(ImGui::GetWindowContentRegionWidth() / size.x * 0.95f, ImGui::GetWindowHeight() / size.y * 0.9f);
             size.x *= scale; size.y *= scale;
         }
 
