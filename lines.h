@@ -36,4 +36,20 @@ struct LinesDrawerFactory : DrawerFactory {
         addLine(ori, ori + glm::fvec3(0,l,0), glm::fvec3(0,1,0));
         addLine(ori, ori + glm::fvec3(0,0,l), glm::fvec3(0,0,1));
     }
+    void addAABB(glm::fvec3 min, glm::fvec3 max, glm::fvec3 c) {
+        addLine(glm::fvec3(min.x,min.y,min.z), glm::fvec3(max.x,min.y,min.z), c);
+        addLine(glm::fvec3(min.x,min.y,max.z), glm::fvec3(max.x,min.y,max.z), c);
+        addLine(glm::fvec3(min.x,max.y,max.z), glm::fvec3(max.x,max.y,max.z), c);
+        addLine(glm::fvec3(min.x,max.y,min.z), glm::fvec3(max.x,max.y,min.z), c);
+
+        addLine(glm::fvec3(min.x,min.y,min.z), glm::fvec3(min.x,max.y,min.z), c);
+        addLine(glm::fvec3(min.x,min.y,max.z), glm::fvec3(min.x,max.y,max.z), c);
+        addLine(glm::fvec3(max.x,min.y,max.z), glm::fvec3(max.x,max.y,max.z), c);
+        addLine(glm::fvec3(max.x,min.y,min.z), glm::fvec3(max.x,max.y,min.z), c);
+
+        addLine(glm::fvec3(min.x,min.y,min.z), glm::fvec3(min.x,min.y,max.z), c);
+        addLine(glm::fvec3(min.x,max.y,min.z), glm::fvec3(min.x,max.y,max.z), c);
+        addLine(glm::fvec3(max.x,max.y,min.z), glm::fvec3(max.x,max.y,max.z), c);
+        addLine(glm::fvec3(max.x,min.y,min.z), glm::fvec3(max.x,min.y,max.z), c);
+    }
 };

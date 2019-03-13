@@ -53,6 +53,7 @@ private:
     std::map<std::string, struct DrawerItem> drawers;
     void draw() {
         ctx.bindFB(cam.resolution.x, cam.resolution.y);
+        glClearColor(0.5, 0.5, 0.5, 0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         struct draw_param dp;
         {
@@ -77,7 +78,6 @@ ThreedbgApp::ThreedbgApp(int width, int height) : Application("3D debug", 0, wid
     ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
     ImGui::StyleColorsLight();
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.9,0.9,0.9,0);
     PointsDrawer::initGL();
     LinesDrawer::initGL();
     glCheckError();
@@ -91,6 +91,8 @@ ThreedbgApp::~ThreedbgApp() {
 void ThreedbgApp::loopOnce() {
     glCheckError();
     Application::newFrame();
+    ImVec4 bg_color = ImGui::GetStyleColorVec4(ImGuiCol_WindowBg);
+    glClearColor(bg_color.x, bg_color.y, bg_color.z, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     {
