@@ -12,17 +12,24 @@ struct ImageViewer {
         ImGui::SameLine();
         if (ImGui::RadioButton("fit width", fit == SCALE_FIT_WIDTH)) fit = SCALE_FIT_WIDTH;
 
+        ImGuiStyle & style = ImGui::GetStyle();
+        ImVec2 ra = ImGui::GetContentRegionAvail();
+        ra.x -= 2 * style.ScrollbarSize;
+        ra.y -= style.ScrollbarSize;
+
         if (fit == SCALE_FIT_WIDTH) {
-            float scale = ImGui::GetWindowContentRegionWidth() / size.x * 0.95f;
+            float scale = ra.x / size.x;
             size.x *= scale; size.y *= scale;
         } else if (fit == SCALE_FIT_FRAME) {
-            float scale = fmin(ImGui::GetWindowContentRegionWidth() / size.x * 0.95f, ImGui::GetWindowHeight() / size.y * 0.9f);
+            float scale = fmin(ra.x / size.x, ra.y / size.y);
             size.x *= scale; size.y *= scale;
         }
 
         ImGui::BeginChild("image", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-        float x = fmax((ImGui::GetWindowContentRegionWidth() - size.x) * 0.5f, 0);
-        ImGui::SameLine(x);
+        float x = fmax((ImGui::GetContentRegionAvailWidth() - size.x) * 0.5f, 0);
+        float y = fmax((ImGui::GetContentRegionAvail().y - size.y) * 0.5f, 0);
+        ImGui::Dummy(ImVec2(0, y));
+        ImGui::Dummy(ImVec2(0, 0)); ImGui::SameLine(x);
         ImGui::Image((ImTextureID)(long long)texture, size, ImVec2(0, 1), ImVec2(1, 0), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 1));
         ImGui::EndChild();
     }

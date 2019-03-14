@@ -43,3 +43,10 @@ if (UNIX)
         pthread # multithread utilities in std:: namespace
         )
 endif (UNIX)
+
+add_executable(Application-example
+    example.cc
+    )
+target_link_libraries(Application-example
+    Application
+    )
