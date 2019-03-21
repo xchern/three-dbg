@@ -14,4 +14,6 @@ void addDrawerFactory(std::string name, std::unique_ptr<DrawerFactory> && df);
 bool working(void);
 void snapshot(int & w, int & h, std::vector<unsigned char> & pixels);
 Camera & camera();
+std::vector<std::string> getInvisible();
+void setInvisible(std::vector<std::string> tl);
 }

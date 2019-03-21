@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <map>
+#include <set>
 
 #include <thread>
 #include <mutex>
@@ -24,10 +25,7 @@ public:
     }
     void loopOnce();
     void addDrawer(std::string name, std::unique_ptr<Drawer> d) {
-        if (drawers.find(name) != drawers.end())
-            drawers[name].ptr = std::move(d);
-        else
-            drawers[name] = {true, std::move(d)};
+        drawers[name] = std::move(d);
     }
     void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
         draw();
@@ -41,16 +39,23 @@ public:
         em.barrier();
     }
     Camera cam;
+    std::vector<std::string> getInvisible() {
+        std::vector<std::string> r;
+        for (auto &t : invisible)
+            if (drawers.find(t) != drawers.end())
+                r.push_back(t);
+        return r;
+    }
+    void setInvisible(std::vector<std::string> tl) {
+        invisible = std::set<std::string>(tl.begin(), tl.end());
+    }
 private:
     DrawingCtx ctx;
     ImageViewer iv;
     ExecuteManager em;
 
-    struct DrawerItem {
-        bool enable;
-        std::unique_ptr<Drawer> ptr;
-    };
-    std::map<std::string, struct DrawerItem> drawers;
+    std::map<std::string, struct std::unique_ptr<Drawer>> drawers;
+    std::set<std::string> invisible;
     void draw() {
         ctx.bindFB(cam.resolution.x, cam.resolution.y);
         glClearColor(0.5, 0.5, 0.5, 0);
@@ -62,15 +67,22 @@ private:
             dp.cam = cam;
         }
         for (auto & d : drawers)
-            if (d.second.enable)
-                d.second.ptr->draw(dp);
+            if (invisible.find(d.first) == invisible.end())
+                d.second->draw(dp);
     }
     void ImGuiManipulateCamera() {
         cam.ImGuiDrag();
         cam.ImGuiEdit();
     }
     void ImGuiSwitchDrawers() {
-        for (auto & d : drawers) ImGui::Checkbox(d.first.c_str(), &d.second.enable);
+        for (auto & d : drawers) {
+            auto it = invisible.find(d.first);
+            bool vf = (it == invisible.end());
+            if (ImGui::Checkbox(d.first.c_str(), &vf)) {
+                if (vf) invisible.erase(it);
+                else invisible.insert(d.first);
+            }
+        }
     }
 };
 
@@ -256,5 +268,11 @@ void snapshot(int & w, int & h, std::vector<unsigned char> & pixels) {
 }
 Camera & camera() {
     return app->cam;
+}
+std::vector<std::string> getInvisible() {
+    return app->getInvisible();
+}
+void setInvisible(std::vector<std::string> tl) {
+    app->setInvisible(std::move(tl));
 }
 }
